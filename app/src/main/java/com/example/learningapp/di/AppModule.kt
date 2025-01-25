@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import com.example.learningapp.data.local.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
+import com.example.learningapp.domain.repository.QuestionRepository
+import com.example.learningapp.domain.usecase.getAllQuestionsUseCase
+import com.example.learningapp.domain.usecase.getQuestionByIdUseCase
+import com.example.learningapp.domain.usecase.learnedQuestionUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,6 +17,25 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule  {
+
+    @Provides
+    @Singleton
+    fun providesGetAllQuestionsUseCase(repository: QuestionRepository) : getAllQuestionsUseCase{
+        return getAllQuestionsUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesGetAllQuestionByIdUseCase(repository: QuestionRepository) : getQuestionByIdUseCase{
+        return  getQuestionByIdUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun providesLearnedQuestionUseCase(repository: QuestionRepository) : learnedQuestionUseCase{
+        return learnedQuestionUseCase(repository)
+    }
+
     @Provides
     @Singleton
     fun providesQuestionDao(database: QuestionDataBase) : QuestionDao{

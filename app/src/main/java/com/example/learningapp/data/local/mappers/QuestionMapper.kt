@@ -1,0 +1,18 @@
+package com.example.learningapp.data.local.mappers
+
+import com.example.learningapp.data.local.QuestionEntity
+import com.example.learningapp.domain.model.Question
+
+fun QuestionEntity.toDomain() = Question(
+    id = id,
+    title = title,
+    answer = answer,
+    isLearned = isLearned
+)
+
+fun Question.toEntity() = QuestionEntity(
+    id = id,
+    title = title,
+    answer = answer,
+    isLearned = isLearned
+)

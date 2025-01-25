@@ -11,7 +11,7 @@ interface QuestionDao {
     fun getAllQuestions(): Flow<List<QuestionEntity>>
 
     @Query("SELECT * FROM questions WHERE id = :id")
-    suspend fun geQuestionById (id: Int): QuestionEntity
+    suspend fun getQuestionById (id: Int): QuestionEntity
 
     @Update
     suspend fun updateQuestion(question: QuestionEntity)
