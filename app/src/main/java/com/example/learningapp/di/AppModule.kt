@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.learningapp.data.local.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
+import com.example.learningapp.data.repository.QuestionRepositoryImpl
 import com.example.learningapp.domain.repository.QuestionRepository
 import com.example.learningapp.domain.usecase.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.getQuestionByIdUseCase
@@ -11,6 +12,7 @@ import com.example.learningapp.domain.usecase.learnedQuestionUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -44,12 +46,20 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesQuestionDataBase(context: Context): QuestionDataBase{
+    fun providesQuestionDataBase(@ApplicationContext context: Context): QuestionDataBase {
         return Room.databaseBuilder(
             context,
             QuestionDataBase::class.java,
             "questions_db"
-        ).build()
+        ).createFromAsset("database/questions.db")
+            .fallbackToDestructiveMigration() // На случай проблем с миграцией
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideQuestionRepository(dao: QuestionDao): QuestionRepository {
+        return QuestionRepositoryImpl(dao)
     }
 
 }
