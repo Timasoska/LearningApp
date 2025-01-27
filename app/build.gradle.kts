@@ -42,6 +42,10 @@ android {
 }
 
 dependencies {
+    implementation (libs.androidx.navigation.navigation.compose.v277.x2)
+    implementation (libs.androidx.hilt.navigation.compose)
+    implementation (libs.material3)
+
     implementation (libs.androidx.navigation.compose)
     //Retrofit
     implementation(libs.retrofit)
