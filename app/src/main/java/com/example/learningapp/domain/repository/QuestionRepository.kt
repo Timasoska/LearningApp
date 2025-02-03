@@ -1,6 +1,7 @@
 package com.example.learningapp.domain.repository
 
 import com.example.learningapp.domain.model.Question
+import com.example.learningapp.domain.model.Subject
 import kotlinx.coroutines.flow.Flow
 
 interface QuestionRepository {

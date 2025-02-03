@@ -2,7 +2,7 @@ package com.example.learningapp.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.learningapp.data.local.QuestionDao
+import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
 import com.example.learningapp.data.repository.QuestionRepositoryImpl
 import com.example.learningapp.domain.repository.QuestionRepository
@@ -40,7 +40,7 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesQuestionDao(database: QuestionDataBase) : QuestionDao{
+    fun providesQuestionDao(database: QuestionDataBase) : QuestionDao {
         return database.questionDao()
     }
 
