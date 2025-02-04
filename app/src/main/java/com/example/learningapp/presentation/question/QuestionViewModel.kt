@@ -6,6 +6,8 @@ import com.example.learningapp.data.local.entities.StatisticsEntity
 import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
+import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
+import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
@@ -28,7 +30,9 @@ class QuestionViewModel @Inject constructor(
     private val addAssociationUseCase: AddAssociationUseCase,
     private val deleteQuestionUseCase: DeleteQuestionUseCase,
     private val updateQuestionUseCase: UpdateQuestionUseCase,
-    private val updateStatisticsUseCase: UpdateStatisticsUseCase
+    private val updateStatisticsUseCase: UpdateStatisticsUseCase,
+    private val deleteAssociationUseCase: DeleteAssociationUseCase,
+    private val updateAssociationUseCase: UpdateAssociationUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuestionState())
@@ -40,10 +44,13 @@ class QuestionViewModel @Inject constructor(
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
             is QuestionIntent.AddAssociation -> addAssociation(intent.association)
+            is QuestionIntent.UpdateAssociation -> updateAssociation(intent.association)
             is QuestionIntent.AddQuestion -> addQuestion(intent.question)
             is QuestionIntent.DeleteQuestion -> deleteQuestion(intent.id)
             is QuestionIntent.UpdateQuestion -> updateQuestion(intent.newQuestion)
             is QuestionIntent.UpdateStatistics -> updateStatistics(intent.statisticsEntity)
+            is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.id)
+
         }
     }
 
@@ -154,6 +161,30 @@ class QuestionViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = false, error = null) }
             } catch (e: Exception){
                 _state.update { it.copy(isLoading = false, error = "Ошибка при обновлении статистики ${e.message}") }
+            }
+        }
+    }
+
+    private fun deleteAssociation(id: Int){
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                deleteAssociationUseCase(id)
+                _state.update { it.copy(isLoading = false, error = null) }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Ошибка при удалении ассоциации: ${e.message}", isLoading = false) }
+            }
+        }
+    }
+
+    private fun updateAssociation(association: Association) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                updateAssociationUseCase(association)
+                _state.update { it.copy(isLoading = false, error = null) }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Ошибка при обновлении ассоциации: ${e.message}", isLoading = false) }
             }
         }
     }
