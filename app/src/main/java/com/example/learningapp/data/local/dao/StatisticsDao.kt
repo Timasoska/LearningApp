@@ -11,13 +11,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface StatisticsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertStatistics(statistics: StatisticsEntity): Int
+    suspend fun insertStatistics(statistics: StatisticsEntity): Long
 
     @Query("SELECT * FROM statistics WHERE questionId = :questionId")
-    suspend fun getStatisticsByQuestionId(questionId: Int): Flow<List<StatisticsEntity>>
+    suspend fun getStatisticsByQuestionId(questionId: Int): StatisticsEntity
 
     @Query("SELECT * FROM statistics WHERE subjectId = :subjectId")
-    suspend fun getStatisticsBySubjectId(subjectId: Int): Flow<List<StatisticsEntity>>
+    suspend fun getStatisticsBySubjectId(subjectId: Int): StatisticsEntity
 
     @Update
     suspend fun updateStatistics(statistics: StatisticsEntity)

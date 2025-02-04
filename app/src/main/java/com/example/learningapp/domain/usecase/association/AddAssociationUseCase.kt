@@ -7,7 +7,7 @@ import javax.inject.Inject
 class AddAssociationUseCase @Inject constructor(
     private val repository: QuestionRepository
 ){
-    suspend operator fun invoke(association: Association) : Int{
+    suspend operator fun invoke(association: Association) : Long{
         return repository.addAssociation(association)
     }
 }

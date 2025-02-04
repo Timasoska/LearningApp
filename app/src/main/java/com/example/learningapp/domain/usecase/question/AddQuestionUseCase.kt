@@ -8,7 +8,7 @@ class AddQuestionUseCase @Inject constructor(
     private val repository: QuestionRepository
 ) {
 
-    suspend operator fun invoke(question: Question) : Int{
+    suspend operator fun invoke(question: Question) : Long{
         return repository.addQuestion(question)
     }
 

@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.example.learningapp.data.local.entities.QuestionEntity
+import com.example.learningapp.domain.model.Question
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,8 +22,8 @@ interface QuestionDao {
     suspend fun updateQuestion(question: QuestionEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertQuestion(question: QuestionEntity) : Int
+    suspend fun insertQuestion(question: QuestionEntity) : Long
 
-    @Delete
-    suspend fun deleteQuestion(question: QuestionEntity)
+    @Query("DELETE FROM questions WHERE id = :id")
+    suspend fun deleteQuestion(id: Int)
 }

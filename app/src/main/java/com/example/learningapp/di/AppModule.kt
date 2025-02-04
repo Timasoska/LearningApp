@@ -18,7 +18,7 @@ import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
 import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
-import com.example.learningapp.domain.usecase.statistics.UpdateStatisticsUseCase
+import com.example.learningapp.domain.usecase.question.UpdateStatisticsUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
 import com.example.learningapp.domain.usecase.subject.GetSubjectByIdUseCase
@@ -35,7 +35,7 @@ object AppModule  {
     //Associations
     @Provides
     @Singleton
-    fun providesUpdateStatisticsUseCase(repository: QuestionRepository) : UpdateStatisticsUseCase{
+    fun providesUpdateStatisticsUseCase(repository: QuestionRepository) : UpdateStatisticsUseCase {
         return UpdateStatisticsUseCase(repository)
     }
         // Subject

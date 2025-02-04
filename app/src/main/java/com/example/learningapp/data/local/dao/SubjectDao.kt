@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 interface SubjectDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSubject(subject: SubjectEntity) : Int
+    suspend fun insertSubject(subject: SubjectEntity) : Long
 
     @Query("SELECT * FROM subjects")
     suspend fun getAllSubjects(): Flow<List<SubjectEntity>>
@@ -21,7 +21,7 @@ interface SubjectDao {
     @Query("SELECT * FROM subjects WHERE id = :id")
     suspend fun getSubjectById(id: Int): SubjectEntity
 
-    @Delete
-    suspend fun deleteSubject(subject: SubjectEntity)
+    @Query("DELETE FROM subjects WHERE id = :id")
+    suspend fun deleteSubject(id: Int)
 
 }

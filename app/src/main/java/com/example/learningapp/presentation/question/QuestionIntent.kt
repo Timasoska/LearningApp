@@ -1,5 +1,6 @@
 package com.example.learningapp.presentation.question
 
+import com.example.learningapp.data.local.entities.StatisticsEntity
 import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 
@@ -10,6 +11,6 @@ sealed class QuestionIntent {
     data class AddQuestion(val question: Question) : QuestionIntent()
     data class DeleteQuestion(val id: Int) : QuestionIntent()
     data class AddAssociation(val association: Association) : QuestionIntent()
-    data class UpdateStatistics(val questionId: Int, val isCorrect: Boolean) : QuestionIntent()
+    data class UpdateStatistics(val statisticsEntity: StatisticsEntity) : QuestionIntent()
     data class UpdateQuestion(val newQuestion: Question) : QuestionIntent()
 }

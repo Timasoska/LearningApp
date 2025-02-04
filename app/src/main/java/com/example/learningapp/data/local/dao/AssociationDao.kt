@@ -21,9 +21,9 @@ interface AssociationDao {
     suspend fun updateAssociation(association: AssociationEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAssociation(association: AssociationEntity): Int
+    suspend fun insertAssociation(association: AssociationEntity): Long
 
-    @Delete
+    @Query("DELETE FROM associations WHERE id = :id")
     suspend fun deleteAssociationById(id: Int)
 
 }
