@@ -2,15 +2,14 @@ package com.example.learningapp.presentation.question
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.learningapp.domain.usecase.getAllQuestionsUseCase
-import com.example.learningapp.domain.usecase.getQuestionByIdUseCase
-import com.example.learningapp.domain.usecase.learnedQuestionUseCase
+import com.example.learningapp.domain.model.Association
+import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
+import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
+import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,30 +29,31 @@ class QuestionViewModel @Inject constructor(
             QuestionIntent.LoadQuestions -> loadQuestions()
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
+            is QuestionIntent.AddAssociation -> addAssociation(intent.association)
+            is QuestionIntent.AddQuestion -> TODO()
+            is QuestionIntent.DeleteQuestion -> TODO()
+            is QuestionIntent.UpdateQuestion -> TODO()
+            is QuestionIntent.UpdateStatistics -> TODO()
         }
     }
 
-    fun loadQuestions(){
+    private fun loadQuestions(){
+        _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            getAllQuestionsUseCase()
-                .catch { e ->
-                    _state.update {
-                        it.copy(error = "Ошибка загрузки: ${e.message}")
-                    }
-                }
-                .collect { questions ->
-                    _state.update {
-                        it.copy(
-                            questions = questions,
-                            isLoading = false,
-                            error = null
-                        )
-                    }
-                }
+            try {
+                val questions = getAllQuestionsUseCase()
+                _state.value = state.value.copy(
+                    questions = questions,
+                    isLoading = false,
+                    error = null)
+            }
+            catch (e: Exception) {
+                _state.value = _state.value.copy(error = e.message)
+            }
         }
     }
 
-    fun learnedStatus(id: Int){
+    private fun learnedStatus(id: Int){
         viewModelScope.launch {
             try {
                 learnedQuestionUseCase(id)
@@ -65,7 +65,7 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    fun loadQuestionById(id: Int){
+    private fun loadQuestionById(id: Int){
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
@@ -86,6 +86,10 @@ class QuestionViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private fun addAssociation(association: Association){
+
     }
 
 }

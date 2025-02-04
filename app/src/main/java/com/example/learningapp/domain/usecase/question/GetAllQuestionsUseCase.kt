@@ -1,4 +1,4 @@
-package com.example.learningapp.domain.usecase
+package com.example.learningapp.domain.usecase.question
 
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.repository.QuestionRepository

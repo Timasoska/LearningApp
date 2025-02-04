@@ -1,9 +1,7 @@
-package com.example.learningapp.domain.usecase
+package com.example.learningapp.domain.usecase.question
 
-import androidx.room.Dao
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.repository.QuestionRepository
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class getQuestionByIdUseCase @Inject constructor(

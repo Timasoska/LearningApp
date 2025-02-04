@@ -9,9 +9,9 @@ import com.example.learningapp.data.local.dao.StatisticsDao
 import com.example.learningapp.data.local.dao.SubjectDao
 import com.example.learningapp.data.repository.QuestionRepositoryImpl
 import com.example.learningapp.domain.repository.QuestionRepository
-import com.example.learningapp.domain.usecase.getAllQuestionsUseCase
-import com.example.learningapp.domain.usecase.getQuestionByIdUseCase
-import com.example.learningapp.domain.usecase.learnedQuestionUseCase
+import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
+import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
+import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,19 +25,19 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesGetAllQuestionsUseCase(repository: QuestionRepository) : getAllQuestionsUseCase{
+    fun providesGetAllQuestionsUseCase(repository: QuestionRepository) : getAllQuestionsUseCase {
         return getAllQuestionsUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesGetAllQuestionByIdUseCase(repository: QuestionRepository) : getQuestionByIdUseCase{
+    fun providesGetAllQuestionByIdUseCase(repository: QuestionRepository) : getQuestionByIdUseCase {
         return  getQuestionByIdUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesLearnedQuestionUseCase(repository: QuestionRepository) : learnedQuestionUseCase{
+    fun providesLearnedQuestionUseCase(repository: QuestionRepository) : learnedQuestionUseCase {
         return learnedQuestionUseCase(repository)
     }
 
@@ -45,6 +45,24 @@ object AppModule  {
     @Singleton
     fun providesQuestionDao(database: QuestionDataBase) : QuestionDao {
         return database.questionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providesAssociationDao(database: QuestionDataBase) : AssociationDao{
+        return database.associationDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providesStaticsDao(database: QuestionDataBase) : StatisticsDao{
+        return database.statisticsDao()
+    }
+
+    @Provides
+    @Singleton
+    fun providesSubjectDao(database: QuestionDataBase) : SubjectDao{
+        return database.subjectDao()
     }
 
     @Provides

@@ -1,14 +1,14 @@
-package com.example.learningapp.domain.usecase
+package com.example.learningapp.domain.usecase.question
 
 import com.example.learningapp.domain.repository.QuestionRepository
 import javax.inject.Inject
 
-class learnedQuestionUseCase @Inject constructor(
+class DeleteQuestionUseCase @Inject constructor(
     private val repository: QuestionRepository
-) {
+){
 
     suspend operator fun invoke(id: Int){
-        return repository.learnedQuestion(id)
+        return repository.deleteQuestion(id)
     }
 
 }
