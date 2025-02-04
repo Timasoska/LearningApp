@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
+import com.example.learningapp.data.local.dao.AssociationDao
+import com.example.learningapp.data.local.dao.StatisticsDao
+import com.example.learningapp.data.local.dao.SubjectDao
 import com.example.learningapp.data.repository.QuestionRepositoryImpl
 import com.example.learningapp.domain.repository.QuestionRepository
 import com.example.learningapp.domain.usecase.getAllQuestionsUseCase
@@ -58,8 +61,13 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun provideQuestionRepository(dao: QuestionDao): QuestionRepository {
-        return QuestionRepositoryImpl(dao)
+    fun provideQuestionRepository(questionDao: QuestionDao, associationDao: AssociationDao, statisticsDao: StatisticsDao, subjectDao: SubjectDao): QuestionRepository {
+        return QuestionRepositoryImpl(
+            questionDao,
+            associationDao,
+            statisticsDao,
+            subjectDao
+        )
     }
 
 }

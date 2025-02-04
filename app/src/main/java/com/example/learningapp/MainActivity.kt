@@ -27,16 +27,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             LearningAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LearningApp()
+
                 }
             }
         }
     }
 }
 
-@Composable
-fun LearningApp(){
-    LearningAppTheme {
-        NavGraph()
-    }
-}
