@@ -1,5 +1,6 @@
 package com.example.learningapp.presentation.question
 
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningapp.data.local.entities.StatisticsEntity
@@ -14,6 +15,7 @@ import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
 import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import com.example.learningapp.domain.usecase.question.UpdateStatisticsUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-//@HiltViewModel
+@HiltViewModel
 class QuestionViewModel @Inject constructor(
     private val learnedQuestionUseCase: learnedQuestionUseCase,
     private val getQuestionByIdUseCase: getQuestionByIdUseCase,
