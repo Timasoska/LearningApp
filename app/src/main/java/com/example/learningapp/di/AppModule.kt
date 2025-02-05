@@ -32,7 +32,8 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule  {
-    //Associations
+
+    //Statistics
     @Provides
     @Singleton
     fun providesUpdateStatisticsUseCase(repository: QuestionRepository) : UpdateStatisticsUseCase {

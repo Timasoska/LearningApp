@@ -16,7 +16,7 @@ interface SubjectDao {
     suspend fun insertSubject(subject: SubjectEntity) : Long
 
     @Query("SELECT * FROM subjects")
-    suspend fun getAllSubjects(): Flow<List<SubjectEntity>>
+     fun getAllSubjects(): Flow<List<SubjectEntity>>
 
     @Query("SELECT * FROM subjects WHERE id = :id")
     suspend fun getSubjectById(id: Int): SubjectEntity
