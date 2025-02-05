@@ -9,7 +9,7 @@ class GetAllSubjectsUseCase @Inject constructor(
     private val repository: QuestionRepository
 ){
 
-    private suspend operator fun invoke() : Flow<List<Subject>> {
+    suspend operator fun invoke() : Flow<List<Subject>> {
         return repository.getAllSubjects()
     }
 

@@ -6,7 +6,7 @@ import javax.inject.Inject
 class DeleteSubjectUseCase @Inject constructor(
     private val repository: QuestionRepository
 ) {
-    private suspend operator fun invoke(id: Int){
+    suspend operator fun invoke(id: Int){
         return repository.deleteSubject(id)
     }
 }
