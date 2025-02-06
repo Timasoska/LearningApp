@@ -19,6 +19,7 @@ import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
 import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import com.example.learningapp.domain.usecase.question.UpdateStatisticsUseCase
+import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
 import com.example.learningapp.domain.usecase.subject.GetSubjectByIdUseCase
@@ -60,8 +61,8 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesAddSubjectUseCase(repository: QuestionRepository) : AddAssociationUseCase{
-        return AddAssociationUseCase(repository)
+    fun providesAddSubjectUseCase(repository: QuestionRepository) : AddSubjectUseCase{
+        return AddSubjectUseCase(repository)
     }
         //Associations
     @Provides
@@ -159,9 +160,7 @@ object AppModule  {
         return Room.databaseBuilder(
             context,
             QuestionDataBase::class.java,
-            "questions_db"
-        ).createFromAsset("database/questions.db")
-            .fallbackToDestructiveMigration() // На случай проблем с миграцией
+            "questions_db")
             .build()
     }
 

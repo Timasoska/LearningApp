@@ -19,7 +19,7 @@ interface QuestionRepository {
     //Предметы
     suspend fun getAllSubjects(): Flow<List<Subject>>
     suspend fun getSubjectById(id: Int): Subject
-    suspend fun addSubject(subject: Subject): Long
+    suspend fun addSubject(name: String): Long
     suspend fun deleteSubject(id: Int)
 
 

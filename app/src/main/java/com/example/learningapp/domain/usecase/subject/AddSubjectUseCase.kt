@@ -8,8 +8,8 @@ class AddSubjectUseCase @Inject constructor(
     private val repository: QuestionRepository
 ) {
 
-    suspend operator fun invoke(subject: Subject) : Long{
-        return repository.addSubject(subject)
+    suspend operator fun invoke(name: String) : Long{
+        return repository.addSubject(name)
     }
 
 }

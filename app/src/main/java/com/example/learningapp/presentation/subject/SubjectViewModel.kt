@@ -2,13 +2,11 @@ package com.example.learningapp.presentation.subject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.learningapp.data.local.entities.SubjectEntity
-import com.example.learningapp.data.local.mappers.toDomain
-import com.example.learningapp.data.local.mappers.toEntity
 import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
 import com.example.learningapp.domain.usecase.subject.GetSubjectByIdUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-//@HiltViewModel
+@HiltViewModel
 class SubjectViewModel @Inject constructor(
     private val addSubjectUseCase: AddSubjectUseCase,
     private val deleteSubjectUseCase: DeleteSubjectUseCase,
@@ -29,7 +27,7 @@ class SubjectViewModel @Inject constructor(
 
     fun processIntent(intent: SubjectIntent){
         when(intent) {
-            is SubjectIntent.AddSubject -> addSubject(intent.subject.toEntity())
+            is SubjectIntent.AddSubject -> addSubject(intent.name)
             is SubjectIntent.DeleteSubject -> deleteSubject(intent.id)
             SubjectIntent.LoadSubject -> loadSubjects()
             is SubjectIntent.LoadSubjectById -> loadSubjectById(intent.id)
@@ -48,11 +46,11 @@ class SubjectViewModel @Inject constructor(
         }
     }
 
-    private fun addSubject(subject: SubjectEntity){
+    private fun addSubject(name: String){
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                addSubjectUseCase(subject.toDomain())
+                addSubjectUseCase(name)
                 loadSubjects()
                 _state.update { it.copy(isLoading = false, error = null) }
             } catch (e: Exception) {

@@ -5,6 +5,7 @@ import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.dao.StatisticsDao
 import com.example.learningapp.data.local.dao.SubjectDao
 import com.example.learningapp.data.local.entities.StatisticsEntity
+import com.example.learningapp.data.local.entities.SubjectEntity
 import com.example.learningapp.data.local.mappers.toDomain
 import com.example.learningapp.data.local.mappers.toEntity
 import com.example.learningapp.domain.model.Association
@@ -55,8 +56,12 @@ class QuestionRepositoryImpl @Inject constructor(
         return subjectDao.getSubjectById(id).toDomain()
     }
 
-    override suspend fun addSubject(subject: Subject): Long {
-        return subjectDao.insertSubject(subject.toEntity())
+    override suspend fun addSubject(name: String): Long {
+        val subjectModel = Subject(
+            id = 0, //ID автоматически сгенерируется БД
+             name = name
+        )
+        return subjectDao.insertSubject(subjectModel.toEntity())
     }
 
     override suspend fun deleteSubject(id: Int) {
