@@ -2,6 +2,7 @@ package com.example.learningapp.presentation.subject
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learningapp.domain.model.Subject
 import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
@@ -31,6 +32,7 @@ class SubjectViewModel @Inject constructor(
             is SubjectIntent.DeleteSubject -> deleteSubject(intent.id)
             SubjectIntent.LoadSubject -> loadSubjects()
             is SubjectIntent.LoadSubjectById -> loadSubjectById(intent.id)
+            is SubjectIntent.UpdateSubject -> updateSubject(intent.subject)
         }
     }
 
@@ -81,6 +83,25 @@ class SubjectViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = false, error = null) }
             }catch (e: Exception){
                 _state.update { it.copy(isLoading = false, error = "Ошибка при загрузке предмета по id ${e.message}") }
+            }
+        }
+    }
+
+    private fun updateSubject(subject: Subject) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                // Если у вас есть use case для обновления предмета, вызывайте его здесь.
+                // Например: updateSubjectUseCase(subject)
+                loadSubjects()
+                _state.update { it.copy(isLoading = false, error = null) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Ошибка при обновлении предмета: ${e.message}"
+                    )
+                }
             }
         }
     }
