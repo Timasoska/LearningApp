@@ -1,7 +1,5 @@
 package com.example.learningapp.domain.repository
 
-import com.example.learningapp.data.local.entities.StatisticsEntity
-import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.model.Subject
 import kotlinx.coroutines.flow.Flow
@@ -25,14 +23,6 @@ interface QuestionRepository {
     suspend fun deleteSubject(id: Int)
     suspend fun updateSubject(subject: Subject)
 
-
-    //Ассоциации
-    suspend fun addAssociation(association: Association): Long
-    suspend fun deleteAssociation(id: Int)
-    suspend fun updateAssociation(association: Association)
-
-    //Статистика
-    suspend fun updateStatistics(statistics: StatisticsEntity)
 
 
 }

@@ -1,14 +1,10 @@
 package com.example.learningapp.data.repository
 
-import com.example.learningapp.data.local.dao.AssociationDao
 import com.example.learningapp.data.local.dao.QuestionDao
-import com.example.learningapp.data.local.dao.StatisticsDao
 import com.example.learningapp.data.local.dao.SubjectDao
-import com.example.learningapp.data.local.entities.StatisticsEntity
 import com.example.learningapp.data.local.entities.SubjectEntity
 import com.example.learningapp.data.local.mappers.toDomain
 import com.example.learningapp.data.local.mappers.toEntity
-import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.model.Subject
 import com.example.learningapp.domain.repository.QuestionRepository
@@ -18,8 +14,6 @@ import javax.inject.Inject
 
 class QuestionRepositoryImpl @Inject constructor(
     private val questionDao: QuestionDao,
-    private val associationDao: AssociationDao,
-    private val statisticsDao: StatisticsDao,
     private val subjectDao: SubjectDao
 ) : QuestionRepository {
     override suspend fun getQuestionById(id: Int): Question {
@@ -76,21 +70,6 @@ class QuestionRepositoryImpl @Inject constructor(
         subjectDao.insertSubject(subject.toEntity())
     }
 
-    override suspend fun addAssociation(association: Association): Long {
-        return associationDao.insertAssociation(association.toEntity())
-    }
-
-    override suspend fun deleteAssociation(id: Int) {
-        return associationDao.deleteAssociationById(id)
-    }
-
-    override suspend fun updateAssociation(association: Association) {
-        return associationDao.updateAssociation(association.toEntity())
-    }
-
-    override suspend fun updateStatistics(statistics: StatisticsEntity) {
-        return statisticsDao.updateStatistics(statistics)
-    }
 
 
 }

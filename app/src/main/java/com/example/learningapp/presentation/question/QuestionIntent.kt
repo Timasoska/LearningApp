@@ -1,7 +1,5 @@
 package com.example.learningapp.presentation.question
 
-import com.example.learningapp.data.local.entities.StatisticsEntity
-import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 
 sealed class QuestionIntent {

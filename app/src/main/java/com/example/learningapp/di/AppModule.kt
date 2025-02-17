@@ -6,14 +6,9 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
-import com.example.learningapp.data.local.dao.AssociationDao
-import com.example.learningapp.data.local.dao.StatisticsDao
 import com.example.learningapp.data.local.dao.SubjectDao
 import com.example.learningapp.data.repository.QuestionRepositoryImpl
 import com.example.learningapp.domain.repository.QuestionRepository
-import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
-import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
-import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
 import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
@@ -21,7 +16,6 @@ import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
 import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
-import com.example.learningapp.domain.usecase.question.UpdateStatisticsUseCase
 import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
@@ -38,12 +32,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule  {
 
-    //Statistics
-    @Provides
-    @Singleton
-    fun providesUpdateStatisticsUseCase(repository: QuestionRepository) : UpdateStatisticsUseCase {
-        return UpdateStatisticsUseCase(repository)
-    }
         // Subject
     @Provides
     @Singleton
@@ -75,24 +63,7 @@ object AppModule  {
     fun providesAddSubjectUseCase(repository: QuestionRepository) : AddSubjectUseCase{
         return AddSubjectUseCase(repository)
     }
-        //Associations
-    @Provides
-    @Singleton
-    fun providesUpdateAssociationUseCase(repository: QuestionRepository) : UpdateAssociationUseCase{
-        return UpdateAssociationUseCase(repository)
-    }
 
-    @Provides
-    @Singleton
-    fun providesDeleteAssociationUseCase(repository: QuestionRepository) : DeleteAssociationUseCase{
-        return DeleteAssociationUseCase(repository)
-    }
-
-    @Provides
-    @Singleton
-    fun providesAddAssociationUseCase(repository: QuestionRepository) : AddAssociationUseCase{
-        return AddAssociationUseCase(repository)
-    }
         //Questions
     @Provides
     @Singleton
@@ -138,11 +109,9 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun provideQuestionRepository(questionDao: QuestionDao, associationDao: AssociationDao, statisticsDao: StatisticsDao, subjectDao: SubjectDao): QuestionRepository {
+    fun provideQuestionRepository(questionDao: QuestionDao, subjectDao: SubjectDao): QuestionRepository {
         return QuestionRepositoryImpl(
             questionDao,
-            associationDao,
-            statisticsDao,
             subjectDao
         )
     }
@@ -153,17 +122,6 @@ object AppModule  {
         return database.questionDao()
     }
 
-    @Provides
-    @Singleton
-    fun providesAssociationDao(database: QuestionDataBase) : AssociationDao{
-        return database.associationDao()
-    }
-
-    @Provides
-    @Singleton
-    fun providesStaticsDao(database: QuestionDataBase) : StatisticsDao{
-        return database.statisticsDao()
-    }
 
     @Provides
     @Singleton
