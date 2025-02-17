@@ -3,9 +3,6 @@ package com.example.learningapp.presentation.question
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningapp.domain.model.Question
-import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
-import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
-import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
 import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
@@ -25,12 +22,8 @@ class QuestionViewModel @Inject constructor(
     private val learnedQuestionUseCase: learnedQuestionUseCase,
     private val getQuestionByIdUseCase: getQuestionByIdUseCase,
     private val getAllQuestionsUseCase: getAllQuestionsUseCase,
-    private val addAssociationUseCase: AddAssociationUseCase,
     private val deleteQuestionUseCase: DeleteQuestionUseCase,
     private val updateQuestionUseCase: UpdateQuestionUseCase,
-    private val updateStatisticsUseCase: UpdateStatisticsUseCase,
-    private val deleteAssociationUseCase: DeleteAssociationUseCase,
-    private val updateAssociationUseCase: UpdateAssociationUseCase,
     private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase
 ) : ViewModel() {
 
@@ -42,13 +35,9 @@ class QuestionViewModel @Inject constructor(
             is QuestionIntent.LoadQuestions -> loadQuestions()
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
-            is QuestionIntent.AddAssociation -> addAssociation(intent.association)
-            is QuestionIntent.UpdateAssociation -> updateAssociation(intent.association)
             is QuestionIntent.AddQuestion -> addQuestion(intent.question)
             is QuestionIntent.DeleteQuestion -> deleteQuestion(intent.id)
             is QuestionIntent.UpdateQuestion -> updateQuestion(intent.newQuestion)
-            is QuestionIntent.UpdateStatistics -> updateStatistics(intent.statisticsEntity)
-            is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.id)
             is QuestionIntent.LoadQuestionBySubject -> loadQuestionsBySubject(intent.subjectId)
         }
     }
@@ -99,17 +88,6 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    private fun addAssociation(association: Association){
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try{
-                addAssociationUseCase(association)
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception){
-                _state.update {it.copy(isLoading = false, error = "Ошибка при добавлении ассоциации ${e.message}")}
-            }
-        }
-    }
 
     private fun addQuestion(question: Question){
         viewModelScope.launch {
@@ -151,42 +129,6 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    private fun updateStatistics(statisticsEntity: StatisticsEntity){
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try{
-                updateStatisticsUseCase(statisticsEntity)
-                loadQuestions()
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception){
-                _state.update { it.copy(isLoading = false, error = "Ошибка при обновлении статистики ${e.message}") }
-            }
-        }
-    }
-
-    private fun deleteAssociation(id: Int){
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try {
-                deleteAssociationUseCase(id)
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception) {
-                _state.update { it.copy(error = "Ошибка при удалении ассоциации: ${e.message}", isLoading = false) }
-            }
-        }
-    }
-
-    private fun updateAssociation(association: Association) {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try {
-                updateAssociationUseCase(association)
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception) {
-                _state.update { it.copy(error = "Ошибка при обновлении ассоциации: ${e.message}", isLoading = false) }
-            }
-        }
-    }
 
     private fun loadQuestionsBySubject(subjectId: Int) {
         viewModelScope.launch {
