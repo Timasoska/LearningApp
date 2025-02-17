@@ -2,6 +2,8 @@ package com.example.learningapp.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
 import com.example.learningapp.data.local.dao.AssociationDao
@@ -14,6 +16,7 @@ import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCa
 import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
+import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
@@ -23,6 +26,7 @@ import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
 import com.example.learningapp.domain.usecase.subject.GetSubjectByIdUseCase
+import com.example.learningapp.domain.usecase.subject.UpdateSubjectUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,6 +50,13 @@ object AppModule  {
     fun providesGetSubjectByIdUseCase(repository: QuestionRepository) : GetSubjectByIdUseCase{
         return GetSubjectByIdUseCase(repository)
     }
+
+    @Provides
+    @Singleton
+    fun providesUpdateSubjectUseCase(repository: QuestionRepository): UpdateSubjectUseCase {
+        return UpdateSubjectUseCase(repository)
+    }
+
 
     @Provides
     @Singleton
@@ -87,6 +98,12 @@ object AppModule  {
     @Singleton
     fun providesUpdateQuestionUseCase(repository: QuestionRepository) : UpdateQuestionUseCase{
         return UpdateQuestionUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetQuestionsBySubjectUseCase(repository: QuestionRepository): GetQuestionsBySubjectUseCase {
+        return GetQuestionsBySubjectUseCase(repository)
     }
 
     @Provides
@@ -154,6 +171,13 @@ object AppModule  {
         return database.subjectDao()
     }
 
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Добавляем колонку subjectId в таблицу вопросов
+            database.execSQL("ALTER TABLE questions ADD COLUMN subjectId INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     @Provides
     @Singleton
     fun providesQuestionDataBase(@ApplicationContext context: Context): QuestionDataBase {
@@ -161,6 +185,7 @@ object AppModule  {
             context,
             QuestionDataBase::class.java,
             "questions_db")
+            .addMigrations(MIGRATION_2_3)
             .build()
     }
 

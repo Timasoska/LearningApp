@@ -15,12 +15,15 @@ interface QuestionRepository {
     suspend fun deleteQuestion(id: Int)
     suspend fun updateQuestion(newQuestion: Question)
     suspend fun learnedQuestion(id: Int) //Статус изученности
+    suspend fun getQuestionsBySubject(subjectId: Int): List<Question> // Добавляем метод
+
 
     //Предметы
     suspend fun getAllSubjects(): Flow<List<Subject>>
     suspend fun getSubjectById(id: Int): Subject
     suspend fun addSubject(name: String): Long
     suspend fun deleteSubject(id: Int)
+    suspend fun updateSubject(subject: Subject)
 
 
     //Ассоциации

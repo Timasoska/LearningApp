@@ -4,5 +4,6 @@ data class Question (
     val id: Int,
     val title: String,
     val answer: String,
-    val isLearned: Boolean
+    val isLearned: Boolean,
+    val subjectId: Int
 )

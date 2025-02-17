@@ -9,6 +9,7 @@ import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
 import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
 import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
+import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
@@ -33,6 +34,7 @@ class QuestionViewModel @Inject constructor(
     private val updateStatisticsUseCase: UpdateStatisticsUseCase,
     private val deleteAssociationUseCase: DeleteAssociationUseCase,
     private val updateAssociationUseCase: UpdateAssociationUseCase,
+    private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuestionState())
@@ -50,7 +52,7 @@ class QuestionViewModel @Inject constructor(
             is QuestionIntent.UpdateQuestion -> updateQuestion(intent.newQuestion)
             is QuestionIntent.UpdateStatistics -> updateStatistics(intent.statisticsEntity)
             is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.id)
-
+            is QuestionIntent.LoadQuestionBySubject -> loadQuestionsBySubject(intent.subjectId)
         }
     }
 
@@ -188,5 +190,18 @@ class QuestionViewModel @Inject constructor(
             }
         }
     }
+
+    private fun loadQuestionsBySubject(subjectId: Int) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                val questions = getQuestionsBySubjectUseCase(subjectId) // <-- Use Case для получения вопросов по предмету
+                _state.update { it.copy(questions = MutableStateFlow(questions), isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = "Ошибка: ${e.message}") }
+            }
+        }
+    }
+
 
 }

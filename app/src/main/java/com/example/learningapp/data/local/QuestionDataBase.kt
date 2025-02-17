@@ -12,7 +12,7 @@ import com.example.learningapp.data.local.entities.StatisticsEntity
 import com.example.learningapp.data.local.entities.SubjectEntity
 
 @Database(
-    version = 2,
+    version = 3,
     entities = [QuestionEntity::class, AssociationEntity::class, StatisticsEntity::class, SubjectEntity::class]
 )
 abstract class QuestionDataBase : RoomDatabase() {

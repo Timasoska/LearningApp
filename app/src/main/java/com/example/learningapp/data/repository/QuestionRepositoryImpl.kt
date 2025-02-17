@@ -48,6 +48,10 @@ class QuestionRepositoryImpl @Inject constructor(
         questionDao.updateQuestion(question.copy(isLearned = !question.isLearned))
     }
 
+    override suspend fun getQuestionsBySubject(subjectId: Int): List<Question> {
+        return questionDao.getQuestionsBySubject(subjectId).map { it.toDomain() }
+    }
+
     override suspend fun getAllSubjects(): Flow<List<Subject>> {
         return subjectDao.getAllSubjects().map { it.map { it.toDomain() } }
     }
@@ -66,6 +70,10 @@ class QuestionRepositoryImpl @Inject constructor(
 
     override suspend fun deleteSubject(id: Int) {
         return subjectDao.deleteSubject(id)
+    }
+
+    override suspend fun updateSubject(subject: Subject) {
+        subjectDao.insertSubject(subject.toEntity())
     }
 
     override suspend fun addAssociation(association: Association): Long {

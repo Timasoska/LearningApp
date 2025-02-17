@@ -10,5 +10,6 @@ data class QuestionEntity (
     val id: Int,
     val title: String,
     val answer: String,
-    val isLearned: Boolean = false
+    val isLearned: Boolean = false,
+    val subjectId: Int
 )
