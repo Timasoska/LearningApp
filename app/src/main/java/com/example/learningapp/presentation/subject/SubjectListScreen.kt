@@ -29,16 +29,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.navigation.NavController
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubjectsListScreen(
     navController: NavController,
     viewModel: SubjectViewModel,
-    onEditSubjectRequested: (Subject) -> Unit,
-    onDeleteSubjectRequested: (Subject) -> Unit
+    onAddSubjectRequested: () -> Unit
 ) {
     // Загружаем предметы при открытии экрана
     LaunchedEffect(Unit) {
@@ -47,8 +46,20 @@ fun SubjectsListScreen(
     val state by viewModel.state.collectAsState()
     val subjects by state.subjects.collectAsState(initial = emptyList())
 
+    // Состояние для отслеживания предмета, который нужно отредактировать
+    var subjectToEdit by remember { mutableStateOf<Subject?>(null) }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Список предметов") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Список предметов") },
+                actions = {
+                    IconButton(onClick = onAddSubjectRequested) {
+                        Icon(Icons.Default.Add, contentDescription = "Добавить предмет")
+                    }
+                }
+            )
+        }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -66,7 +77,7 @@ fun SubjectsListScreen(
                             .fillMaxWidth()
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         // По нажатию на предмет переходим на экран вопросов
                         Text(
@@ -80,11 +91,13 @@ fun SubjectsListScreen(
                         )
                         Row {
                             // Иконка редактирования
-                            IconButton(onClick = { onEditSubjectRequested(subject) }) {
+                            IconButton(onClick = { subjectToEdit = subject }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Редактировать")
                             }
                             // Иконка удаления
-                            IconButton(onClick = { onDeleteSubjectRequested(subject) }) {
+                            IconButton(onClick = {
+                                viewModel.processIntent(SubjectIntent.DeleteSubject(subject.id))
+                            }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Удалить")
                             }
                         }
@@ -92,6 +105,15 @@ fun SubjectsListScreen(
                 }
             }
         }
+    }
+
+    // Отображение диалога редактирования, если выбран предмет
+    subjectToEdit?.let { subject ->
+        EditSubjectDialog(
+            subject = subject,
+            viewModel = viewModel,
+            onDismiss = { subjectToEdit = null } // Скрываем диалог после завершения
+        )
     }
 }
 

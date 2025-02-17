@@ -27,6 +27,7 @@ import androidx.navigation.navArgument
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.model.Subject
 import com.example.learningapp.presentation.question.QuestionViewModel
+import com.example.learningapp.presentation.subject.SubjectIntent
 import com.example.learningapp.presentation.subject.SubjectViewModel
 import com.example.learningapp.presentation.ui.*
 
@@ -37,11 +38,7 @@ fun AppNavigation(
     questionViewModel: QuestionViewModel
 ) {
     val navController = rememberNavController()
-
     NavHost(navController = navController, startDestination = "splash") {
-
-
-        // 🌟 Splash Screen
         composable("splash") {
             SplashScreen(onTimeout = {
                 navController.navigate("subjects_list") {
@@ -50,122 +47,55 @@ fun AppNavigation(
             })
         }
 
-        // 🌟 Экран списка предметов (нажатие на предмет → открывает список вопросов)
-        composable(
-            route = "questions_list/{subjectId}",
-            arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val subjectId = backStackEntry.arguments?.getInt("subjectId") ?: 0
-
-            var showAddQuestionDialog by remember { mutableStateOf(false) }
-
-            QuestionManagementScreen(
-                subjectId = subjectId,
+        composable("subjects_list") {
+            SubjectsListScreen(
                 navController = navController,
-                viewModel = questionViewModel,
-                onAddQuestionRequested = { showAddQuestionDialog = true },
-                onEditQuestionRequested = { /* Редактировать вопрос */ },
-                onDeleteQuestionRequested = { /* Удалить вопрос */ },
-                onQuestionDetails = { questionId ->
-                    navController.navigate("question_details/$questionId")
+                viewModel = subjectViewModel,
+                onAddSubjectRequested = {
+                    navController.navigate("add_subject")
                 }
             )
-
-            if (showAddQuestionDialog) {
-                AddQuestionDialog(
-                    subjectId = subjectId, // <-- Передаём subjectId
-                    viewModel = questionViewModel,
-                    onQuestionAdded = { showAddQuestionDialog = false }
-                )
-            }
         }
 
-
-        // 🌟 Экран добавления предмета
         composable("add_subject") {
             AddSubjectScreen(
                 viewModel = subjectViewModel,
-                onSubjectAdded = { navController.popBackStack() }
+                onSubjectAdded = {
+                    navController.popBackStack()
+                }
             )
         }
 
-        // 🌟 Экран списка вопросов (по конкретному предмету)
         composable(
             route = "questions_list/{subjectId}",
             arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
         ) { backStackEntry ->
             val subjectId = backStackEntry.arguments?.getInt("subjectId") ?: 0
-
-            var questionToDelete by remember { mutableStateOf<Question?>(null) }
-            var showAddQuestionDialog by remember { mutableStateOf(false) }
-            var questionToEdit by remember { mutableStateOf<Question?>(null) }
-
             QuestionManagementScreen(
                 subjectId = subjectId,
                 navController = navController,
                 viewModel = questionViewModel,
-                onAddQuestionRequested = { showAddQuestionDialog = true },
-                onEditQuestionRequested = { question -> questionToEdit = question },
-                onDeleteQuestionRequested = { question -> questionToDelete = question },
+                onAddQuestionRequested = { navController.navigate("add_question/$subjectId") },
+                onEditQuestionRequested = { /* Handle edit question */ },
+                onDeleteQuestionRequested = { /* Handle delete question */ },
                 onQuestionDetails = { questionId ->
                     navController.navigate("question_details/$questionId")
                 }
             )
-
-            if (questionToDelete != null) {
-                DeleteQuestionDialog(
-                    question = questionToDelete!!,
-                    viewModel = questionViewModel,
-                    onDeleteConfirmed = { questionToDelete = null },
-                    onDismiss = { questionToDelete = null }
-                )
-            }
-            if (showAddQuestionDialog) {
-                AddQuestionDialog(
-                    viewModel = questionViewModel,
-                    onQuestionAdded = { showAddQuestionDialog = false },
-                    subjectId = subjectId
-                )
-            }
-            if (questionToEdit != null) {
-                navController.navigate("edit_question/${questionToEdit!!.id}")
-                questionToEdit = null
-            }
         }
 
-        // 🌟 Экран деталей вопроса
         composable(
-            route = "question_details/{questionId}",
-            arguments = listOf(navArgument("questionId") { type = NavType.IntType })
+            route = "add_question/{subjectId}",
+            arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
         ) { backStackEntry ->
-            val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
-            val question = questionViewModel.state.value.questions.collectAsState(initial = emptyList()).value
-                .find { it.id == questionId }
-
-            question?.let {
-                QuestionDetailsScreen(
-                    question = it,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-        }
-
-        // 🌟 Экран редактирования вопроса
-        composable(
-            route = "edit_question/{questionId}",
-            arguments = listOf(navArgument("questionId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
-            val question = questionViewModel.state.value.questions.collectAsState(initial = emptyList()).value
-                .find { it.id == questionId }
-
-            question?.let {
-                EditQuestionScreen(
-                    question = it,
-                    viewModel = questionViewModel,
-                    onQuestionUpdated = { navController.popBackStack() }
-                )
-            }
+            val subjectId = backStackEntry.arguments?.getInt("subjectId") ?: 0
+            AddQuestionDialog(
+                subjectId = subjectId,
+                viewModel = questionViewModel,
+                onQuestionAdded = {
+                    navController.popBackStack() // Возвращаемся назад после добавления
+                }
+            )
         }
     }
 }
