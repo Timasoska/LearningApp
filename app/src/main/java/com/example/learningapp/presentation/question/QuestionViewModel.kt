@@ -8,6 +8,7 @@ import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
 import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
 import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
+import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
@@ -27,6 +28,7 @@ class QuestionViewModel @Inject constructor(
     private val learnedQuestionUseCase: learnedQuestionUseCase,
     private val getQuestionByIdUseCase: getQuestionByIdUseCase,
     private val getAllQuestionsUseCase: getAllQuestionsUseCase,
+    private val addQuestionUseCase: AddQuestionUseCase,
     private val addAssociationUseCase: AddAssociationUseCase,
     private val deleteQuestionUseCase: DeleteQuestionUseCase,
     private val updateQuestionUseCase: UpdateQuestionUseCase,
@@ -116,7 +118,7 @@ class QuestionViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                addQuestion(question)
+                addQuestionUseCase(question)
                 loadQuestions()
                 _state.update { it.copy(isLoading = false, error = null) }
             } catch (e: Exception){
