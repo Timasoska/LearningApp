@@ -3,6 +3,7 @@ package com.example.learningapp.presentation.question
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningapp.domain.model.Question
+import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
 import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
@@ -10,6 +11,7 @@ import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
 import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,8 @@ class QuestionViewModel @Inject constructor(
     private val getAllQuestionsUseCase: getAllQuestionsUseCase,
     private val deleteQuestionUseCase: DeleteQuestionUseCase,
     private val updateQuestionUseCase: UpdateQuestionUseCase,
-    private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase
+    private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase,
+    private val addQuestionUseCase: AddQuestionUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuestionState())
@@ -90,10 +93,10 @@ class QuestionViewModel @Inject constructor(
 
 
     private fun addQuestion(question: Question){
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _state.update { it.copy(isLoading = true) }
             try {
-                addQuestion(question)
+                addQuestionUseCase(question)
                 loadQuestions()
                 _state.update { it.copy(isLoading = false, error = null) }
             } catch (e: Exception){
