@@ -46,8 +46,9 @@ fun QuestionManagementScreen(
 ) {
     // Загружаем вопросы при открытии экрана
     LaunchedEffect(Unit) {
-        viewModel.processIntent(QuestionIntent.LoadQuestions)
+        viewModel.processIntent(QuestionIntent.LoadQuestionBySubject(subjectId))
     }
+
     val state by viewModel.state.collectAsState()
     val questions by state.questions.collectAsState(initial = emptyList())
 
