@@ -32,11 +32,16 @@ import com.example.learningapp.domain.model.Question
 import com.example.learningapp.presentation.question.QuestionIntent
 import com.example.learningapp.presentation.question.QuestionViewModel
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionManagementScreen(
-    subjectId: Int,  // <-- Добавляем subjectId
+    subjectId: Int,  // если нужен фильтр по предмету
     navController: NavController,
     viewModel: QuestionViewModel,
     onAddQuestionRequested: () -> Unit,
@@ -46,50 +51,77 @@ fun QuestionManagementScreen(
 ) {
     // Загружаем вопросы при открытии экрана
     LaunchedEffect(Unit) {
-        viewModel.processIntent(QuestionIntent.LoadQuestionBySubject(subjectId))
+        viewModel.processIntent(QuestionIntent.LoadQuestions)
     }
-
     val state by viewModel.state.collectAsState()
     val questions by state.questions.collectAsState(initial = emptyList())
 
+    // Состояние для поискового запроса
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredQuestions = if (searchQuery.isEmpty()) {
+        questions
+    } else {
+        questions.filter { it.title.contains(searchQuery, ignoreCase = true) }
+    }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Список вопросов") }) },
+        topBar = {
+            TopAppBar(title = { Text("Список вопросов") })
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddQuestionRequested) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить вопрос")
             }
         }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            items(questions) { question ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    // При нажатии на карточку переходим на экран деталей
-                    Row(
+            // Строка поиска
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = { Text("Поиск по названию") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredQuestions) { question ->
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onQuestionDetails(question.id) }
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            .padding(8.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = question.title, style = MaterialTheme.typography.titleMedium)
-                            Text(text = question.answer, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row {
-                            IconButton(onClick = { onEditQuestionRequested(question) }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Редактировать")
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onQuestionDetails(question.id) }
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = question.title,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = question.answer,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
-                            IconButton(onClick = { onDeleteQuestionRequested(question) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                            Row {
+                                IconButton(onClick = { onEditQuestionRequested(question) }) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Редактировать")
+                                }
+                                IconButton(onClick = { onDeleteQuestionRequested(question) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Удалить")
+                                }
                             }
                         }
                     }
@@ -98,3 +130,5 @@ fun QuestionManagementScreen(
         }
     }
 }
+
+

@@ -26,6 +26,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.model.Subject
+import com.example.learningapp.presentation.authorization.LoginScreen
+import com.example.learningapp.presentation.authorization.RegistrationScreen
 import com.example.learningapp.presentation.question.QuestionIntent
 import com.example.learningapp.presentation.question.QuestionViewModel
 import com.example.learningapp.presentation.subject.SubjectIntent
@@ -42,7 +44,7 @@ fun AppNavigation(
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
             SplashScreen(onTimeout = {
-                navController.navigate("subjects_list") {
+                navController.navigate("login") {
                     popUpTo("splash") { inclusive = true }
                 }
             })
@@ -54,6 +56,40 @@ fun AppNavigation(
                 viewModel = subjectViewModel,
                 onAddSubjectRequested = {
                     navController.navigate("add_subject")
+                }
+            )
+        }
+
+        // Новый экран авторизации
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    // При успешном входе переходим к списку предметов
+                    navController.navigate("subjects_list") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onRegistrationClick = {
+                    // Переход к экрану регистрации
+                    navController.navigate("registration")
+                }
+            )
+        }
+
+        // Новый экран регистрации
+        composable("registration") {
+            RegistrationScreen(
+                onRegistrationComplete = {
+                    // После регистрации возвращаемся на экран авторизации
+                    navController.navigate("login") {
+                        popUpTo("registration") { inclusive = true }
+                    }
+                },
+                onLoginClick = {
+                    // Если у пользователя уже есть аккаунт, переходим на авторизацию
+                    navController.navigate("login") {
+                        popUpTo("registration") { inclusive = true }
+                    }
                 }
             )
         }
