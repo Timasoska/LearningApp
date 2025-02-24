@@ -24,6 +24,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel для управления состоянием вопросов в приложении.
+ *
+ * Обрабатывает интенты, связанные с загрузкой, обновлением и удалением вопросов,
+ * а также управление статусом изученности.
+ *
+ * @property learnedQuestionUseCase UseCase для изменения статуса изученности вопроса.
+ * @property state Поток состояния [QuestionState] для UI.
+ */
+
 @HiltViewModel
 class QuestionViewModel @Inject constructor(
     private val learnedQuestionUseCase: learnedQuestionUseCase,
@@ -40,6 +50,13 @@ class QuestionViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(QuestionState())
     val state: StateFlow<QuestionState> = _state.asStateFlow()
+
+
+    /**
+     * Обрабатывает поступающие интенты, связанные с действиями над вопросами.
+     *
+     * @param intent Интент для обработки.
+     */
 
     fun processIntent(intent: QuestionIntent){
         when(intent) {
