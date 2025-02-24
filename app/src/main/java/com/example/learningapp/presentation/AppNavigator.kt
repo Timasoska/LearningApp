@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.model.Subject
+import com.example.learningapp.presentation.question.QuestionIntent
 import com.example.learningapp.presentation.question.QuestionViewModel
 import com.example.learningapp.presentation.subject.SubjectIntent
 import com.example.learningapp.presentation.subject.SubjectViewModel
@@ -76,12 +77,54 @@ fun AppNavigation(
                 navController = navController,
                 viewModel = questionViewModel,
                 onAddQuestionRequested = { navController.navigate("add_question/$subjectId") },
-                onEditQuestionRequested = { /* Handle edit question */ },
-                onDeleteQuestionRequested = { /* Handle delete question */ },
+                onEditQuestionRequested = { question ->
+                    navController.navigate("edit_question/${question.id}")
+                },
+                onDeleteQuestionRequested = { question ->
+                    // Вызываем intent на удаление; viewModel обновит список после удаления
+                    questionViewModel.processIntent(QuestionIntent.DeleteQuestion(question.id))
+                },
                 onQuestionDetails = { questionId ->
                     navController.navigate("question_details/$questionId")
                 }
             )
+        }
+
+        composable(
+            route = "edit_question/{questionId}",
+            arguments = listOf(navArgument("questionId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
+            // Загружаем вопрос по ID при открытии экрана редактирования
+            LaunchedEffect(questionId) {
+                questionViewModel.processIntent(QuestionIntent.LoadQuestionById(questionId))
+            }
+            val currentQuestion = questionViewModel.state.collectAsState().value.currentQuestion
+            if (currentQuestion != null) {
+                EditQuestionScreen(
+                    question = currentQuestion,
+                    viewModel = questionViewModel,
+                    onQuestionUpdated = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(
+            route = "question_details/{questionId}",
+            arguments = listOf(navArgument("questionId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
+            // Загружаем вопрос по ID для экрана деталей
+            LaunchedEffect(questionId) {
+                questionViewModel.processIntent(QuestionIntent.LoadQuestionById(questionId))
+            }
+            val currentQuestion = questionViewModel.state.collectAsState().value.currentQuestion
+            if (currentQuestion != null) {
+                QuestionDetailsScreen(
+                    question = currentQuestion,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable(
@@ -92,11 +135,10 @@ fun AppNavigation(
             AddQuestionDialog(
                 subjectId = subjectId,
                 viewModel = questionViewModel,
-                onQuestionAdded = {
-                    navController.popBackStack() // Возвращаемся назад после добавления
-                }
+                onQuestionAdded = { navController.popBackStack() }
             )
         }
+
     }
 }
 
