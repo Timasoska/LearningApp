@@ -25,13 +25,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel для управления состоянием вопросов в приложении.
+ * Question view model
  *
- * Обрабатывает интенты, связанные с загрузкой, обновлением и удалением вопросов,
- * а также управление статусом изученности.
- *
- * @property learnedQuestionUseCase UseCase для изменения статуса изученности вопроса.
- * @property state Поток состояния [QuestionState] для UI.
+ * @property learnedQuestionUseCase
+ * @property getQuestionByIdUseCase
+ * @property getAllQuestionsUseCase
+ * @property addAssociationUseCase
+ * @property deleteQuestionUseCase
+ * @property updateQuestionUseCase
+ * @property updateStatisticsUseCase
+ * @property deleteAssociationUseCase
+ * @property updateAssociationUseCase
+ * @property addQuestionUseCase
+ * @constructor Create empty Question view model
  */
 
 @HiltViewModel
@@ -53,9 +59,9 @@ class QuestionViewModel @Inject constructor(
 
 
     /**
-     * Обрабатывает поступающие интенты, связанные с действиями над вопросами.
+     * Process intent
      *
-     * @param intent Интент для обработки.
+     * @param intent
      */
 
     fun processIntent(intent: QuestionIntent){
