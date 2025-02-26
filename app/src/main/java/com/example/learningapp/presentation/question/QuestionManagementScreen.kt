@@ -37,6 +37,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,8 +62,12 @@ fun QuestionManagementScreen(
     val state by viewModel.state.collectAsState()
     val questions by state.questions.collectAsState(initial = emptyList())
 
-    // Состояние для поискового запроса
-    var searchQuery by remember { mutableStateOf("") }
+    // Используем rememberSaveable для сохранения состояния при повороте
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    // Получаем контроллер клавиатуры
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Фильтрация вопросов по введённому запросу
     val filteredQuestions = if (searchQuery.isEmpty()) {
         questions
     } else {
@@ -79,14 +89,27 @@ fun QuestionManagementScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Строка поиска
+            // Поисковая строка с кнопкой "Очистить"
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text("Поиск по названию") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(8.dp),
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchQuery = ""
+                            keyboardController?.hide() // скрываем клавиатуру
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Очистить"
+                            )
+                        }
+                    }
+                }
             )
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
@@ -103,7 +126,7 @@ fun QuestionManagementScreen(
                                 .clickable { onQuestionDetails(question.id) }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
