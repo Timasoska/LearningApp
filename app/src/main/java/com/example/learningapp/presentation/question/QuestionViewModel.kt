@@ -113,8 +113,10 @@ class QuestionViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                val questionsFlow = getQuestionsBySubjectUseCase(subjectId)
-                _state.value = state.value.copy(questions = questionsFlow, isLoading = false, error = null)
+                getQuestionsBySubjectUseCase(subjectId)
+                    .collect { questions ->
+                        _state.update { it.copy(questions = MutableStateFlow(questions), isLoading = false, error = null) }
+                    }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = "Ошибка загрузки вопросов: ${e.message}", isLoading = false)
@@ -122,6 +124,7 @@ class QuestionViewModel @Inject constructor(
             }
         }
     }
+
 
     private fun loadQuestions(){
         _state.update { it.copy(isLoading = true) }
@@ -170,19 +173,17 @@ class QuestionViewModel @Inject constructor(
     }
 
 
-    private fun addQuestion(question: Question){
+    private fun addQuestion(question: Question) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
             try {
                 addQuestionUseCase(question)
-                loadQuestions()
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception){
-                _state.update { it.copy(isLoading = false, error = "Ошибка при добавлении вопроса ${e.message}")
-                }
+                loadQuestionsBySubject(question.subjectId) // Теперь загружаем только вопросы текущего предмета
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Ошибка при добавлении вопроса: ${e.message}") }
             }
         }
     }
+
 
     private fun deleteQuestion(id: Int){
         viewModelScope.launch {

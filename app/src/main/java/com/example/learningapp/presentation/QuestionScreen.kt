@@ -26,6 +26,12 @@ fun QuestionScreen(
     subjectId: Int,
     viewModel: QuestionViewModel = hiltViewModel()
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+    var questionTitle by remember { mutableStateOf("") }
+    var questionAnswer by remember { mutableStateOf("") }
+    var isEditing by remember { mutableStateOf(false) }
+    var questionToEdit by remember { mutableStateOf<Question?>(null) }
+
     var associationDialogQuestion by remember { mutableStateOf<Question?>(null) }
     var associationText by remember { mutableStateOf("") }
 
@@ -36,65 +42,127 @@ fun QuestionScreen(
         viewModel.processIntent(QuestionIntent.LoadQuestionsBySubject(subjectId))
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        val questions by state.questions.collectAsState(initial = emptyList())
-
-        LazyColumn {
-            items(questions) { question ->
-                val questionAssociations = associations[question.id] ?: emptyList()
-                QuestionItem(
-                    question = question,
-                    associations = questionAssociations,
-                    onEdit = { /* логика редактирования */ },
-                    onDelete = { viewModel.processIntent(QuestionIntent.DeleteQuestion(question.id)) },
-                    onAddAssociation = {
-                        associationText = ""
-                        associationDialogQuestion = question
-                    },
-                    onDeleteAssociation = { associationId ->
-                        viewModel.processIntent(QuestionIntent.DeleteAssociation(associationId))
+    Scaffold(
+        topBar = {
+            TopAppBar(title = { Text(text = "Вопросы для предмета $subjectId") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                questionTitle = ""
+                questionAnswer = ""
+                isEditing = false
+                questionToEdit = null
+                showDialog = true
+            }) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Добавить вопрос")
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            when {
+                state.isLoading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
-                )
+                }
+                state.error != null -> {
+                    Text(text = "Ошибка: ${state.error}", color = MaterialTheme.colorScheme.error)
+                }
+                else -> {
+                    val questions by state.questions.collectAsState(initial = emptyList())
+                    LazyColumn {
+                        items(questions) { question ->
+                            val questionAssociations = associations[question.id] ?: emptyList()
+                            QuestionItem(
+                                question = question,
+                                associations = questionAssociations,
+                                onEdit = {
+                                    questionTitle = question.title
+                                    questionAnswer = question.answer
+                                    isEditing = true
+                                    questionToEdit = question
+                                    showDialog = true
+                                },
+                                onDelete = {
+                                    viewModel.processIntent(QuestionIntent.DeleteQuestion(question.id))
+                                },
+                                onAddAssociation = {
+                                    associationText = ""
+                                    associationDialogQuestion = question
+                                },
+                                onDeleteAssociation = { associationId ->
+                                    viewModel.processIntent(QuestionIntent.DeleteAssociation(associationId))
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 
-    associationDialogQuestion?.let { questionForAssoc ->
+    // Диалог для добавления/редактирования вопроса
+    if (showDialog) {
         AlertDialog(
-            onDismissRequest = { associationDialogQuestion = null },
-            title = { Text(text = "Добавить ассоциацию к вопросу") },
+            onDismissRequest = { showDialog = false },
+            title = { Text(text = if (isEditing) "Редактировать вопрос" else "Добавить вопрос") },
             text = {
-                TextField(
-                    value = associationText,
-                    onValueChange = { associationText = it },
-                    label = { Text("Ассоциация") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column {
+                    TextField(
+                        value = questionTitle,
+                        onValueChange = { questionTitle = it },
+                        label = { Text("Вопрос") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = questionAnswer,
+                        onValueChange = { questionAnswer = it },
+                        label = { Text("Ответ") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.processIntent(
-                        QuestionIntent.AddAssociation(
-                            Association(
-                                id = 0,
-                                questionId = questionForAssoc.id,
-                                association = associationText
+                    if (isEditing && questionToEdit != null) {
+                        val updatedQuestion = questionToEdit!!.copy(
+                            title = questionTitle,
+                            answer = questionAnswer
+                        )
+                        viewModel.processIntent(QuestionIntent.UpdateQuestion(updatedQuestion))
+                    } else {
+                        viewModel.processIntent(
+                            QuestionIntent.AddQuestion(
+                                Question(
+                                    id = 0,
+                                    title = questionTitle,
+                                    answer = questionAnswer,
+                                    subjectId = subjectId, // Привязываем к предмету
+                                    isLearned = false
+                                )
                             )
                         )
-                    )
-                    associationDialogQuestion = null
+                    }
+                    showDialog = false
                 }) {
                     Text("Сохранить")
                 }
             },
             dismissButton = {
-                Button(onClick = { associationDialogQuestion = null }) {
+                Button(onClick = { showDialog = false }) {
                     Text("Отмена")
                 }
             }
         )
     }
 }
+
 
 
 @Composable
