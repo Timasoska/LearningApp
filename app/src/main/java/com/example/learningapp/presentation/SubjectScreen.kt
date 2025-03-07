@@ -1,5 +1,6 @@
 package com.example.learningapp.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.foundation.layout.*
@@ -20,9 +21,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 fun SubjectScreen(
+    onSubjectClick: (Subject) -> Unit,
     viewModel: SubjectViewModel = hiltViewModel()
 ) {
-    // Локальные состояния для диалога
     var showDialog by remember { mutableStateOf(false) }
     var subjectName by remember { mutableStateOf("") }
     var isEditing by remember { mutableStateOf(false) }
@@ -37,7 +38,6 @@ fun SubjectScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = {
-                // Открываем диалог для добавления нового предмета
                 subjectName = ""
                 isEditing = false
                 subjectToEdit = null
@@ -63,13 +63,12 @@ fun SubjectScreen(
                     Text(text = "Ошибка: ${state.error}", color = MaterialTheme.colorScheme.error)
                 }
                 else -> {
-                    // Предполагаем, что state.subjects содержит поток списка предметов.
-                    // Для простоты преобразуем его в состояние.
                     val subjects by state.subjects.collectAsState(initial = emptyList())
                     LazyColumn {
                         items(subjects) { subject ->
                             SubjectItem(
                                 subject = subject,
+                                onClick = { onSubjectClick(subject) },
                                 onEdit = {
                                     subjectName = subject.name
                                     isEditing = true
@@ -87,7 +86,6 @@ fun SubjectScreen(
         }
     }
 
-    // Диалог для добавления / редактирования предмета
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -105,7 +103,6 @@ fun SubjectScreen(
                         val updatedSubject = subjectToEdit!!.copy(name = subjectName)
                         viewModel.processIntent(SubjectIntent.UpdateSubject(updatedSubject))
                     } else {
-                        // При добавлении id = 0, чтобы Room сгенерировал новый id
                         viewModel.processIntent(SubjectIntent.AddSubject(Subject(id = 0, name = subjectName)))
                     }
                     showDialog = false
@@ -122,21 +119,23 @@ fun SubjectScreen(
     }
 }
 
+
 @Composable
 fun SubjectItem(
     subject: Subject,
+    onClick: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(12.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

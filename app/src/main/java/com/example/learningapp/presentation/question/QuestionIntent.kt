@@ -15,5 +15,6 @@ sealed class QuestionIntent {
     data class UpdateAssociation(val association: Association) : QuestionIntent()
     data class UpdateStatistics(val statisticsEntity: StatisticsEntity) : QuestionIntent()
     data class UpdateQuestion(val newQuestion: Question) : QuestionIntent()
+    data class LoadQuestionsBySubject(val subjectId: Int) : QuestionIntent()
 
 }

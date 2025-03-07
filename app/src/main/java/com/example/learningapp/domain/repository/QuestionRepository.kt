@@ -33,4 +33,6 @@ interface QuestionRepository {
 
     suspend fun updateSubject(subject: Subject)
 
+    fun getQuestionsBySubject(subjectId: Int): Flow<List<Question>>
+
 }

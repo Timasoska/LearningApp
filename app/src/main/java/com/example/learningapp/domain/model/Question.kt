@@ -11,6 +11,7 @@ package com.example.learningapp.domain.model
 data class Question (
     val id: Int,
     val title: String,
+    val subjectId: Int,
     val answer: String,
     val isLearned: Boolean
 )

@@ -7,12 +7,14 @@ fun QuestionEntity.toDomain() = Question(
     id = id,
     title = title,
     answer = answer,
-    isLearned = isLearned
+    isLearned = isLearned,
+    subjectId = subjectId
 )
 
 fun Question.toEntity() = QuestionEntity(
     id = id,
     title = title,
     answer = answer,
-    isLearned = isLearned
+    isLearned = isLearned,
+    subjectId = subjectId
 )

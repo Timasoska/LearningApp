@@ -85,5 +85,10 @@ class QuestionRepositoryImpl @Inject constructor(
         return statisticsDao.updateStatistics(statistics)
     }
 
+    override fun getQuestionsBySubject(subjectId: Int): Flow<List<Question>> {
+        return questionDao.getQuestionsBySubject(subjectId)
+            .map { entities -> entities.map { it.toDomain() } }
+    }
+
 
 }

@@ -56,4 +56,8 @@ interface QuestionDao {
 
     @Query("DELETE FROM questions WHERE id = :id")
     suspend fun deleteQuestion(id: Int)
+
+    @Query("SELECT * FROM questions WHERE subjectId = :subjectId")
+    fun getQuestionsBySubject(subjectId: Int): Flow<List<QuestionEntity>>
+
 }

@@ -11,6 +11,7 @@ import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCa
 import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
+import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseCase
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
@@ -52,6 +53,7 @@ class QuestionViewModel @Inject constructor(
     private val deleteAssociationUseCase: DeleteAssociationUseCase,
     private val updateAssociationUseCase: UpdateAssociationUseCase,
     private val addQuestionUseCase: AddQuestionUseCase,
+    private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuestionState())
@@ -66,6 +68,7 @@ class QuestionViewModel @Inject constructor(
 
     fun processIntent(intent: QuestionIntent){
         when(intent) {
+            is QuestionIntent.LoadQuestionsBySubject -> loadQuestionsBySubject(intent.subjectId)
             is QuestionIntent.LoadQuestions -> loadQuestions()
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
@@ -77,6 +80,19 @@ class QuestionViewModel @Inject constructor(
             is QuestionIntent.UpdateStatistics -> updateStatistics(intent.statisticsEntity)
             is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.id)
 
+        }
+    }
+    private fun loadQuestionsBySubject(subjectId: Int) {
+        _state.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            try {
+                val questionsFlow = getQuestionsBySubjectUseCase(subjectId)
+                _state.value = state.value.copy(questions = questionsFlow, isLoading = false, error = null)
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(error = "Ошибка загрузки вопросов: ${e.message}", isLoading = false)
+                }
+            }
         }
     }
 
