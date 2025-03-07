@@ -21,6 +21,12 @@ class QuestionRepositoryImpl @Inject constructor(
     private val statisticsDao: StatisticsDao,
     private val subjectDao: SubjectDao
 ) : QuestionRepository {
+
+    override suspend fun updateSubject(newSubject: Subject) {
+        // insertSubject с onConflict = REPLACE обновит предмет, если id уже существует
+        subjectDao.insertSubject(newSubject.toEntity())
+    }
+
     override suspend fun getQuestionById(id: Int): Question {
         return questionDao.getQuestionById(id = id).toDomain()
     }

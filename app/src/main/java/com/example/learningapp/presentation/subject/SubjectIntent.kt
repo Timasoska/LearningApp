@@ -7,4 +7,5 @@ sealed class SubjectIntent {
     data class AddSubject(val subject: Subject) : SubjectIntent()
     data class DeleteSubject(val id: Int) : SubjectIntent()
     data class LoadSubjectById(val id: Int) : SubjectIntent()
+    data class UpdateSubject(val subject: Subject) : SubjectIntent()
 }

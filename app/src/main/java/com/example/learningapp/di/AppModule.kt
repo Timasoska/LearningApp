@@ -2,6 +2,7 @@ package com.example.learningapp.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
 import com.example.learningapp.data.local.dao.QuestionDao
 import com.example.learningapp.data.local.QuestionDataBase
 import com.example.learningapp.data.local.dao.AssociationDao
@@ -23,6 +24,7 @@ import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
 import com.example.learningapp.domain.usecase.subject.GetSubjectByIdUseCase
+import com.example.learningapp.domain.usecase.subject.UpdateSubjectUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -161,7 +163,14 @@ object AppModule  {
             context,
             QuestionDataBase::class.java,
             "questions_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
+    }
+
+    // Новый провайдер для обновления предмета:
+    @Provides
+    @Singleton
+    fun providesUpdateSubjectUseCase(repository: QuestionRepository) : UpdateSubjectUseCase {
+        return UpdateSubjectUseCase(repository)
     }
 
 }

@@ -31,5 +31,6 @@ interface QuestionRepository {
     //Статистика
     suspend fun updateStatistics(statistics: StatisticsEntity)
 
+    suspend fun updateSubject(subject: Subject)
 
 }

@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import com.example.learningapp.presentation.SubjectScreen
 import com.example.learningapp.presentation.question.QuestionViewModel
 import com.example.learningapp.presentation.subject.SubjectViewModel
 import com.example.learningapp.presentation.ui.MainScreen
@@ -16,7 +17,6 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    //private val QuestiobviewModel: QuestionViewModel by viewModels()
     private val SubjectviewModel: SubjectViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             LearningAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen(SubjectviewModel)
+                    SubjectScreen()
                 }
             }
         }
