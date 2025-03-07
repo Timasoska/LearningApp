@@ -8,6 +8,7 @@ import com.example.learningapp.domain.model.Association
 import com.example.learningapp.domain.model.Question
 import com.example.learningapp.domain.usecase.association.AddAssociationUseCase
 import com.example.learningapp.domain.usecase.association.DeleteAssociationUseCase
+import com.example.learningapp.domain.usecase.association.GetAssociationsByQuestionIdUseCase
 import com.example.learningapp.domain.usecase.association.UpdateAssociationUseCase
 import com.example.learningapp.domain.usecase.question.AddQuestionUseCase
 import com.example.learningapp.domain.usecase.question.DeleteQuestionUseCase
@@ -46,18 +47,23 @@ class QuestionViewModel @Inject constructor(
     private val learnedQuestionUseCase: learnedQuestionUseCase,
     private val getQuestionByIdUseCase: getQuestionByIdUseCase,
     private val getAllQuestionsUseCase: getAllQuestionsUseCase,
-    private val addAssociationUseCase: AddAssociationUseCase,
     private val deleteQuestionUseCase: DeleteQuestionUseCase,
     private val updateQuestionUseCase: UpdateQuestionUseCase,
     private val updateStatisticsUseCase: UpdateStatisticsUseCase,
-    private val deleteAssociationUseCase: DeleteAssociationUseCase,
     private val updateAssociationUseCase: UpdateAssociationUseCase,
     private val addQuestionUseCase: AddQuestionUseCase,
     private val getQuestionsBySubjectUseCase: GetQuestionsBySubjectUseCase,
+    private val getAssociationsByQuestionIdUseCase: GetAssociationsByQuestionIdUseCase,
+    private val addAssociationUseCase: AddAssociationUseCase,
+    private val deleteAssociationUseCase: DeleteAssociationUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuestionState())
     val state: StateFlow<QuestionState> = _state.asStateFlow()
+
+    private val _associations = MutableStateFlow<Map<Int, List<Association>>>(emptyMap())
+    val associations: StateFlow<Map<Int, List<Association>>> = _associations.asStateFlow()
+
 
 
     /**
@@ -68,20 +74,41 @@ class QuestionViewModel @Inject constructor(
 
     fun processIntent(intent: QuestionIntent){
         when(intent) {
+            is QuestionIntent.AddAssociation -> addAssociation(intent.association)
+            is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.associationId)
             is QuestionIntent.LoadQuestionsBySubject -> loadQuestionsBySubject(intent.subjectId)
             is QuestionIntent.LoadQuestions -> loadQuestions()
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
-            is QuestionIntent.AddAssociation -> addAssociation(intent.association)
             is QuestionIntent.UpdateAssociation -> updateAssociation(intent.association)
             is QuestionIntent.AddQuestion -> addQuestion(intent.question)
             is QuestionIntent.DeleteQuestion -> deleteQuestion(intent.id)
             is QuestionIntent.UpdateQuestion -> updateQuestion(intent.newQuestion)
             is QuestionIntent.UpdateStatistics -> updateStatistics(intent.statisticsEntity)
-            is QuestionIntent.DeleteAssociation -> deleteAssociation(intent.id)
-
         }
     }
+
+    private fun loadAssociations(questionId: Int) {
+        viewModelScope.launch {
+            getAssociationsByQuestionIdUseCase(questionId).collect { associations ->
+                _associations.update { it + (questionId to associations) }
+            }
+        }
+    }
+
+    private fun addAssociation(association: Association) {
+        viewModelScope.launch {
+            addAssociationUseCase(association)
+            loadAssociations(association.questionId)
+        }
+    }
+
+    private fun deleteAssociation(associationId: Int) {
+        viewModelScope.launch {
+            deleteAssociationUseCase(associationId)
+        }
+    }
+
     private fun loadQuestionsBySubject(subjectId: Int) {
         _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
@@ -142,17 +169,6 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    private fun addAssociation(association: Association){
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try{
-                addAssociationUseCase(association)
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception){
-                _state.update {it.copy(isLoading = false, error = "Ошибка при добавлении ассоциации ${e.message}")}
-            }
-        }
-    }
 
     private fun addQuestion(question: Question){
         viewModelScope.launch {
@@ -207,17 +223,6 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    private fun deleteAssociation(id: Int){
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try {
-                deleteAssociationUseCase(id)
-                _state.update { it.copy(isLoading = false, error = null) }
-            } catch (e: Exception) {
-                _state.update { it.copy(error = "Ошибка при удалении ассоциации: ${e.message}", isLoading = false) }
-            }
-        }
-    }
 
     private fun updateAssociation(association: Association) {
         viewModelScope.launch {

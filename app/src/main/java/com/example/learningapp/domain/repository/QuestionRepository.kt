@@ -35,4 +35,6 @@ interface QuestionRepository {
 
     fun getQuestionsBySubject(subjectId: Int): Flow<List<Question>>
 
+    fun getAssociationsByQuestionId(questionId: Int): Flow<List<Association>>
+
 }

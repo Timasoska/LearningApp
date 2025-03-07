@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AssociationDao {
+    @Query("SELECT * FROM associations WHERE questionId = :questionId")
+    fun getAssociationsByQuestionId(questionId: Int): Flow<List<AssociationEntity>>
+
     @Query("SELECT * FROM associations")
     fun getAllAssociations(): Flow<List<AssociationEntity>>
 
