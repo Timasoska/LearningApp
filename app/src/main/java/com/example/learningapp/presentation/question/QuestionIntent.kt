@@ -16,5 +16,6 @@ sealed class QuestionIntent {
     data class LoadQuestionsBySubject(val subjectId: Int) : QuestionIntent()
     data class AddAssociation(val association: Association) : QuestionIntent()
     data class DeleteAssociation(val associationId: Int) : QuestionIntent()
+    object LoadAllAssociations : QuestionIntent()
 
 }

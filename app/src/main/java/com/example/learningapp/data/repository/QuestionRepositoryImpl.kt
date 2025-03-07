@@ -95,5 +95,15 @@ class QuestionRepositoryImpl @Inject constructor(
             .map { entities -> entities.map { it.toDomain() } }
     }
 
+    override fun getAllAssociations(): Flow<Map<Int, List<Association>>> {
+        return associationDao.getAllAssociations()
+            .map { associationsList ->
+                associationsList.groupBy { it.questionId }.mapValues { entry ->
+                    entry.value.map { it.toDomain() }
+                }
+            }
+    }
+
+
 
 }

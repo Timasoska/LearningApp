@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,11 +41,13 @@ fun QuestionScreen(
 
     LaunchedEffect(subjectId) {
         viewModel.processIntent(QuestionIntent.LoadQuestionsBySubject(subjectId))
+        viewModel.processIntent(QuestionIntent.LoadAllAssociations)
     }
+
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text = "Вопросы для предмета $subjectId") })
+            TopAppBar(title = { Text(text = "Вопросы для предмета") })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = {
@@ -143,7 +146,7 @@ fun QuestionScreen(
                                     id = 0,
                                     title = questionTitle,
                                     answer = questionAnswer,
-                                    subjectId = subjectId, // Привязываем к предмету
+                                    subjectId = subjectId,
                                     isLearned = false
                                 )
                             )
@@ -161,7 +164,45 @@ fun QuestionScreen(
             }
         )
     }
+
+    // Диалог добавления ассоциации
+    associationDialogQuestion?.let { questionForAssoc ->
+        AlertDialog(
+            onDismissRequest = { associationDialogQuestion = null },
+            title = { Text(text = "Добавить ассоциацию к вопросу") },
+            text = {
+                TextField(
+                    value = associationText,
+                    onValueChange = { associationText = it },
+                    label = { Text("Ассоциация") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.processIntent(
+                        QuestionIntent.AddAssociation(
+                            Association(
+                                id = 0,
+                                questionId = questionForAssoc.id,
+                                association = associationText
+                            )
+                        )
+                    )
+                    associationDialogQuestion = null
+                }) {
+                    Text("Сохранить")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { associationDialogQuestion = null }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 }
+
 
 
 
@@ -186,6 +227,7 @@ fun QuestionItem(
             Text(text = "Ответ: ${question.answer}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Показываем ассоциации
             if (associations.isNotEmpty()) {
                 Text(text = "Ассоциации:", style = MaterialTheme.typography.titleSmall)
                 Column {
@@ -214,11 +256,12 @@ fun QuestionItem(
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "Удалить")
                 }
                 IconButton(onClick = onAddAssociation) {
-                    Icon(imageVector = Icons.Default.MailOutline, contentDescription = "Добавить ассоциацию")
+                    Icon(imageVector = Icons.Default.AccountBox, contentDescription = "Добавить ассоциацию")
                 }
             }
         }
     }
 }
+
 
 

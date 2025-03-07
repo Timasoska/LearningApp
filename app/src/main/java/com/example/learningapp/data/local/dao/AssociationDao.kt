@@ -29,4 +29,5 @@ interface AssociationDao {
     @Query("DELETE FROM associations WHERE id = :id")
     suspend fun deleteAssociationById(id: Int)
 
+
 }
