@@ -47,7 +47,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionManagementScreen(
-    subjectId: Int,  // если нужен фильтр по предмету
+    subjectId: Int,
     navController: NavController,
     viewModel: QuestionViewModel,
     onAddQuestionRequested: () -> Unit,
@@ -55,10 +55,11 @@ fun QuestionManagementScreen(
     onDeleteQuestionRequested: (Question) -> Unit,
     onQuestionDetails: (Int) -> Unit
 ) {
-    // Загружаем вопросы при открытии экрана
-    LaunchedEffect(Unit) {
-        viewModel.processIntent(QuestionIntent.LoadQuestions)
+    // Исправлено: загружаем вопросы по subjectId при открытии экрана
+    LaunchedEffect(subjectId) {
+        viewModel.processIntent(QuestionIntent.LoadQuestionBySubject(subjectId))
     }
+
     val state by viewModel.state.collectAsState()
     val questions by state.questions.collectAsState(initial = emptyList())
 

@@ -143,7 +143,8 @@ object AppModule  {
             context,
             QuestionDataBase::class.java,
             "questions_db")
-            .addMigrations(MIGRATION_2_3)
+            .fallbackToDestructiveMigration()
+            //.addMigrations(MIGRATION_2_3)
             .build()
     }
 

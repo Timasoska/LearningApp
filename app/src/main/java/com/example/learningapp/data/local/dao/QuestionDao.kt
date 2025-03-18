@@ -29,4 +29,5 @@ interface QuestionDao {
 
     @Query("SELECT * FROM questions WHERE subjectId = :subjectId")
     suspend fun getQuestionsBySubject(subjectId: Int): List<QuestionEntity>
+
 }

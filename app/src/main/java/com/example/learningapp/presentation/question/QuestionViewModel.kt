@@ -137,10 +137,20 @@ class QuestionViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                val questions = getQuestionsBySubjectUseCase(subjectId) // <-- Use Case для получения вопросов по предмету
-                _state.update { it.copy(questions = MutableStateFlow(questions), isLoading = false) }
+                val questions = getQuestionsBySubjectUseCase(subjectId)
+                _state.update {
+                    it.copy(
+                        questions = MutableStateFlow(questions),
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = "Ошибка: ${e.message}") }
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Ошибка: ${e.message}"
+                    )
+                }
             }
         }
     }
