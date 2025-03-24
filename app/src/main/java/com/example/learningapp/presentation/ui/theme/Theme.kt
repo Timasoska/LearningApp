@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.learningapp.App
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -46,25 +47,14 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun LearningAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val app = LocalContext.current.applicationContext as App
+    val colors = if (app.isDarkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = Pink80,
-            secondary = Color.Blue
-        ),
+        colorScheme = colors,
         typography = Typography(
             bodyLarge = TextStyle(
                 fontSize = 30.sp,

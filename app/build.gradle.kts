@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.converter.gson)
     // Room
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.appcompat)
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.room.paging)
 

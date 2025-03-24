@@ -8,6 +8,6 @@ sealed class QuestionIntent {
     data class LoadQuestionBySubject(val subjectId: Int) : QuestionIntent()
     data class LoadQuestionById(val id: Int) : QuestionIntent()
     data class AddQuestion(val question: Question) : QuestionIntent()
-    data class DeleteQuestion(val id: Int) : QuestionIntent()
+    data class DeleteQuestion(val id: Int, val subjectId: Int) : QuestionIntent()
     data class UpdateQuestion(val newQuestion: Question) : QuestionIntent()
 }

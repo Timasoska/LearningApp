@@ -117,9 +117,9 @@ fun AppNavigation(
                     navController.navigate("edit_question/${question.id}")
                 },
                 onDeleteQuestionRequested = { question ->
-                    // Вызываем intent на удаление; viewModel обновит список после удаления
-                    questionViewModel.processIntent(QuestionIntent.DeleteQuestion(question.id))
+                    questionViewModel.processIntent(QuestionIntent.DeleteQuestion(question.id, subjectId))
                 },
+
                 onQuestionDetails = { questionId ->
                     navController.navigate("question_details/$questionId")
                 }

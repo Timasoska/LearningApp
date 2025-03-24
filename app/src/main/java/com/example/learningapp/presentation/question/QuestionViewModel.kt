@@ -39,7 +39,7 @@ class QuestionViewModel @Inject constructor(
             is QuestionIntent.LearnedStatus -> learnedStatus(id = intent.id)
             is QuestionIntent.LoadQuestionById -> loadQuestionById(id = intent.id)
             is QuestionIntent.AddQuestion -> addQuestion(intent.question)
-            is QuestionIntent.DeleteQuestion -> deleteQuestion(intent.id)
+            is QuestionIntent.DeleteQuestion -> deleteQuestion(intent.id, intent.subjectId)
             is QuestionIntent.UpdateQuestion -> updateQuestion(intent.newQuestion)
             is QuestionIntent.LoadQuestionBySubject -> loadQuestionsBySubject(intent.subjectId)
         }
@@ -106,18 +106,19 @@ class QuestionViewModel @Inject constructor(
         }
     }
 
-    private fun deleteQuestion(id: Int){
+    private fun deleteQuestion(id: Int, subjectId: Int){
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try{
                 deleteQuestionUseCase(id)
-                loadQuestions()
+                loadQuestionsBySubject(subjectId) // Загружаем только вопросы выбранного предмета
                 _state.update { it.copy(isLoading = false, error = null) }
             } catch (e: Exception){
                 _state.update { it.copy(isLoading = false, error = "Ошибка при удалении вопроса ${e.message}") }
             }
         }
     }
+
 
     private fun updateQuestion(newQuestion: Question){
         viewModelScope.launch {

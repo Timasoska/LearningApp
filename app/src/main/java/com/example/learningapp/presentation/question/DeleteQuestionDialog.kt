@@ -11,6 +11,7 @@ import com.example.learningapp.presentation.question.QuestionViewModel
 @Composable
 fun DeleteQuestionDialog(
     question: Question,
+    subjectId: Int,
     viewModel: QuestionViewModel,
     onDeleteConfirmed: () -> Unit,
     onDismiss: () -> Unit
@@ -21,7 +22,7 @@ fun DeleteQuestionDialog(
         text = { Text("Вы действительно хотите удалить вопрос \"${question.title}\"?") },
         confirmButton = {
             TextButton(onClick = {
-                viewModel.processIntent(QuestionIntent.DeleteQuestion(question.id))
+                viewModel.processIntent(QuestionIntent.DeleteQuestion(question.id, subjectId))
                 onDeleteConfirmed()
             }) {
                 Text("Удалить")
@@ -34,3 +35,4 @@ fun DeleteQuestionDialog(
         }
     )
 }
+
