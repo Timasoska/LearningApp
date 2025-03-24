@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.example.learningapp.domain.model.Subject
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,6 +57,9 @@ fun SubjectsListScreen(
                 actions = {
                     IconButton(onClick = onAddSubjectRequested) {
                         Icon(Icons.Default.Add, contentDescription = "Добавить предмет")
+                    }
+                    IconButton(onClick = { navController.navigate("theme_settings") }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Настройки темы")
                     }
                 }
             )
@@ -105,7 +109,9 @@ fun SubjectsListScreen(
                 }
             }
         }
+
     }
+
 
     // Отображение диалога редактирования, если выбран предмет
     subjectToEdit?.let { subject ->

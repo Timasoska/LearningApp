@@ -49,60 +49,45 @@ fun AppNavigation(
                 }
             })
         }
-
-        composable("subjects_list") {
-            SubjectsListScreen(
-                navController = navController,
-                viewModel = subjectViewModel,
-                onAddSubjectRequested = {
-                    navController.navigate("add_subject")
-                }
-            )
-        }
-
-        // Новый экран авторизации
         composable("login") {
             LoginScreen(
                 onLoginSuccess = {
-                    // При успешном входе переходим к списку предметов
                     navController.navigate("subjects_list") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
                 onRegistrationClick = {
-                    // Переход к экрану регистрации
                     navController.navigate("registration")
                 }
             )
         }
-
-        // Новый экран регистрации
         composable("registration") {
             RegistrationScreen(
                 onRegistrationComplete = {
-                    // После регистрации возвращаемся на экран авторизации
                     navController.navigate("login") {
                         popUpTo("registration") { inclusive = true }
                     }
                 },
                 onLoginClick = {
-                    // Если у пользователя уже есть аккаунт, переходим на авторизацию
                     navController.navigate("login") {
                         popUpTo("registration") { inclusive = true }
                     }
                 }
             )
         }
-
+        composable("subjects_list") {
+            SubjectsListScreen(
+                navController = navController,
+                viewModel = subjectViewModel,
+                onAddSubjectRequested = { navController.navigate("add_subject") }
+            )
+        }
         composable("add_subject") {
             AddSubjectScreen(
                 viewModel = subjectViewModel,
-                onSubjectAdded = {
-                    navController.popBackStack()
-                }
+                onSubjectAdded = { navController.popBackStack() }
             )
         }
-
         composable(
             route = "questions_list/{subjectId}",
             arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
@@ -121,14 +106,11 @@ fun AppNavigation(
                 }
             )
         }
-
-
         composable(
             route = "edit_question/{questionId}",
             arguments = listOf(navArgument("questionId") { type = NavType.IntType })
         ) { backStackEntry ->
             val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
-            // Загружаем вопрос по ID при открытии экрана редактирования
             LaunchedEffect(questionId) {
                 questionViewModel.processIntent(QuestionIntent.LoadQuestionById(questionId))
             }
@@ -141,13 +123,11 @@ fun AppNavigation(
                 )
             }
         }
-
         composable(
             route = "question_details/{questionId}",
             arguments = listOf(navArgument("questionId") { type = NavType.IntType })
         ) { backStackEntry ->
             val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
-            // Загружаем вопрос по ID для экрана деталей
             LaunchedEffect(questionId) {
                 questionViewModel.processIntent(QuestionIntent.LoadQuestionById(questionId))
             }
@@ -159,7 +139,6 @@ fun AppNavigation(
                 )
             }
         }
-
         composable(
             route = "add_question/{subjectId}",
             arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
@@ -171,7 +150,10 @@ fun AppNavigation(
                 onQuestionAdded = { navController.popBackStack() }
             )
         }
-
+        // Новый маршрут для настроек темы
+        composable("theme_settings") {
+            ThemeSettingsScreen()
+        }
     }
 }
 
