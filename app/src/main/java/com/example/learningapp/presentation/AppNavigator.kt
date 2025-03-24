@@ -116,15 +116,12 @@ fun AppNavigation(
                 onEditQuestionRequested = { question ->
                     navController.navigate("edit_question/${question.id}")
                 },
-                onDeleteQuestionRequested = { question ->
-                    questionViewModel.processIntent(QuestionIntent.DeleteQuestion(question.id, subjectId))
-                },
-
                 onQuestionDetails = { questionId ->
                     navController.navigate("question_details/$questionId")
                 }
             )
         }
+
 
         composable(
             route = "edit_question/{questionId}",

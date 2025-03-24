@@ -52,28 +52,17 @@ fun QuestionManagementScreen(
     viewModel: QuestionViewModel,
     onAddQuestionRequested: () -> Unit,
     onEditQuestionRequested: (Question) -> Unit,
-    onDeleteQuestionRequested: (Question) -> Unit,
     onQuestionDetails: (Int) -> Unit
 ) {
-    // Исправлено: загружаем вопросы по subjectId при открытии экрана
+    // Состояние для показа диалога удаления
+    var questionToDelete by remember { mutableStateOf<Question?>(null) }
+
+    // Загрузка вопросов по subjectId
     LaunchedEffect(subjectId) {
         viewModel.processIntent(QuestionIntent.LoadQuestionBySubject(subjectId))
     }
-
     val state by viewModel.state.collectAsState()
     val questions by state.questions.collectAsState(initial = emptyList())
-
-    // Используем rememberSaveable для сохранения состояния при повороте
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    // Получаем контроллер клавиатуры
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    // Фильтрация вопросов по введённому запросу
-    val filteredQuestions = if (searchQuery.isEmpty()) {
-        questions
-    } else {
-        questions.filter { it.title.contains(searchQuery, ignoreCase = true) }
-    }
 
     Scaffold(
         topBar = {
@@ -90,32 +79,11 @@ fun QuestionManagementScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Поисковая строка с кнопкой "Очистить"
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                label = { Text("Поиск по названию") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = {
-                            searchQuery = ""
-                            keyboardController?.hide() // скрываем клавиатуру
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Очистить"
-                            )
-                        }
-                    }
-                }
-            )
+            // Здесь можно добавить поисковую строку, если требуется
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(filteredQuestions) { question ->
+                items(questions) { question ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -127,7 +95,7 @@ fun QuestionManagementScreen(
                                 .clickable { onQuestionDetails(question.id) }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
@@ -143,7 +111,7 @@ fun QuestionManagementScreen(
                                 IconButton(onClick = { onEditQuestionRequested(question) }) {
                                     Icon(Icons.Default.Edit, contentDescription = "Редактировать")
                                 }
-                                IconButton(onClick = { onDeleteQuestionRequested(question) }) {
+                                IconButton(onClick = { questionToDelete = question }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Удалить")
                                 }
                             }
@@ -153,6 +121,18 @@ fun QuestionManagementScreen(
             }
         }
     }
+
+    // Отображаем диалог удаления, если выбран вопрос для удаления
+    questionToDelete?.let { question ->
+        DeleteQuestionDialog(
+            question = question,
+            subjectId = subjectId,
+            viewModel = viewModel,
+            onDeleteConfirmed = { questionToDelete = null },
+            onDismiss = { questionToDelete = null }
+        )
+    }
 }
+
 
 

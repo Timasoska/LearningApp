@@ -22,6 +22,7 @@ fun DeleteQuestionDialog(
         text = { Text("Вы действительно хотите удалить вопрос \"${question.title}\"?") },
         confirmButton = {
             TextButton(onClick = {
+                // Передаём оба параметра в intent
                 viewModel.processIntent(QuestionIntent.DeleteQuestion(question.id, subjectId))
                 onDeleteConfirmed()
             }) {
@@ -35,4 +36,3 @@ fun DeleteQuestionDialog(
         }
     )
 }
-
