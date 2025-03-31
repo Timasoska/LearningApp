@@ -40,6 +40,7 @@ import androidx.compose.material3.*
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.focus.onFocusChanged // --- ВОЗВРАЩАЕМ ---
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,17 +50,28 @@ fun SubjectsListScreen(
     viewModel: SubjectViewModel,
     onAddSubjectRequested: () -> Unit
 ) {
-    // LaunchedEffect не нужен для явной загрузки, т.к. ViewModel делает это в init
-    // LaunchedEffect(Unit) { viewModel.processIntent(SubjectIntent.LoadSubjects) }
-
+    // Собираем состояние из ViewModel
     val state by viewModel.state.collectAsState()
+
     var subjectToEdit by remember { mutableStateOf<Subject?>(null) }
     var subjectToDelete by remember { mutableStateOf<Subject?>(null) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
-        topBar = { /* ... без изменений ... */ }
+        topBar = {
+            TopAppBar(
+                title = { Text("Список предметов") },
+                actions = {
+                    IconButton(onClick = onAddSubjectRequested) {
+                        Icon(Icons.Default.Add, contentDescription = "Добавить предмет")
+                    }
+                    IconButton(onClick = { navController.navigate("theme_settings") }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Настройки темы")
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -73,26 +85,26 @@ fun SubjectsListScreen(
                 onValueChange = { viewModel.processIntent(SubjectIntent.SearchQueryChanged(it)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 8.dp)
+                    // --- ВОЗВРАЩАЕМ обработчик фокуса ---
+                    .onFocusChanged { focusState ->
+                        viewModel.processIntent(SubjectIntent.SearchBarFocusChanged(focusState.isFocused))
+                    },
                 label = { Text("Поиск предметов...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
+                        // --- ВОЗВРАЩАЕМ SubmitSearch ---
+                        viewModel.processIntent(SubjectIntent.SubmitSearch(state.searchQuery))
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
                 ),
                 trailingIcon = {
-                    // Индикатор загрузки/debounce
-                    if (state.isLoading) { // Показываем всегда, когда isLoading = true
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    // Иконка очистки
-                    else if (state.searchQuery.isNotEmpty()) {
+                    if (state.isLoading) {
+                        CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.processIntent(SubjectIntent.SearchQueryChanged("")) }) {
                             Icon(Icons.Default.Clear, contentDescription = "Очистить поиск")
                         }
@@ -100,22 +112,44 @@ fun SubjectsListScreen(
                 }
             )
 
-            // Отображение результатов
+            // Отображение ProgressBar или Истории/Результатов
             Box(modifier = Modifier.fillMaxSize()) {
-                // Показываем список отфильтрованных результатов
-                // ProgressBar внутри списка не нужен, т.к. он в TextField/trailingIcon
-                SubjectResultList(
-                    // Используем отфильтрованный список из состояния
-                    subjects = state.filteredSubjects,
-                    // Показываем сообщение "не найдено", только если *не* идет загрузка
-                    // и список действительно пуст
-                    showEmptyMessage = !state.isLoading && state.filteredSubjects.isEmpty(),
-                    onSubjectClick = { subject ->
-                        navController.navigate("questions_list/${subject.id}")
-                    },
-                    onEditClick = { subject -> subjectToEdit = subject },
-                    onDeleteClick = { subject -> subjectToDelete = subject }
-                )
+                // --- Условное отображение Истории или Результатов ---
+                if (state.showHistory) {
+                    // --- Показываем Историю ---
+                    SearchHistoryList(
+                        history = state.searchHistory,
+                        onHistoryItemClick = { term ->
+                            viewModel.processIntent(SubjectIntent.HistoryItemClicked(term))
+                            // Фокус и клавиатура управляются ViewModel
+                        },
+                        onClearHistoryClick = {
+                            viewModel.processIntent(SubjectIntent.ClearSearchHistory)
+                        }
+                    )
+                } else {
+                    // --- Показываем ProgressBar или Результаты ---
+                    // Показываем ProgressBar если isLoading И (список пуст ИЛИ запрос непустой - т.е. идет debounce/фильтрация)
+                    val showLoadingIndicator = state.isLoading && (state.filteredSubjects.isEmpty() || state.searchQuery.isNotEmpty())
+                    if (showLoadingIndicator) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    } else {
+                        // Показываем список результатов
+                        SubjectResultList(
+                            subjects = state.filteredSubjects,
+                            // Сообщение "не найдено", если не грузим и список пуст
+                            showEmptyMessage = !state.isLoading && state.filteredSubjects.isEmpty(),
+                            onSubjectClick = { subject ->
+                                navController.navigate("questions_list/${subject.id}")
+                                // --- ВОЗВРАЩАЕМ добавление в историю при клике ---
+                                viewModel.processIntent(SubjectIntent.SubmitSearch(subject.name))
+                                focusManager.clearFocus() // Убираем фокус с поиска
+                            },
+                            onEditClick = { subject -> subjectToEdit = subject },
+                            onDeleteClick = { subject -> subjectToDelete = subject }
+                        )
+                    }
+                }
 
                 // Отображение ошибки
                 if (state.error != null) {
@@ -130,21 +164,75 @@ fun SubjectsListScreen(
     }
 
     // Диалоги редактирования и удаления (без изменений)
-    subjectToEdit?.let { subject ->
+    // Если subjectToEdit не null (т.е. пользователь нажал "Редактировать"),
+    // показываем диалог редактирования
+    subjectToEdit?.let { subject -> // `it` здесь будет равно subjectToEdit
         EditSubjectDialog(
-            subject = subject,
-            viewModel = viewModel,
-            onDismiss = { subjectToEdit = null }
+            subject = subject,      // Передаем выбранный предмет
+            viewModel = viewModel,  // Передаем ViewModel для вызова UpdateSubject
+            onDismiss = {           // Лямбда, которая вызовется при закрытии диалога
+                subjectToEdit = null // Сбрасываем состояние, чтобы диалог скрылся
+            }
         )
     }
 
-    subjectToDelete?.let { subject ->
+    // Если subjectToDelete не null (т.е. пользователь нажал "Удалить"),
+    // показываем диалог подтверждения удаления
+    subjectToDelete?.let { subject -> // `it` здесь будет равно subjectToDelete
+        // Используем существующий Composable DeleteSubjectScreen,
+        // который по сути является AlertDialog'ом
         DeleteSubjectScreen(
-            subject = subject,
-            viewModel = viewModel,
-            onDeleteConfirmed = { subjectToDelete = null },
-            onDismiss = { subjectToDelete = null }
+            subject = subject,          // Передаем выбранный предмет
+            viewModel = viewModel,      // Передаем ViewModel для вызова DeleteSubject
+            onDeleteConfirmed = {       // Лямбда при подтверждении удаления
+                subjectToDelete = null  // Сбрасываем состояние, чтобы диалог скрылся
+            },
+            onDismiss = {               // Лямбда при отмене или закрытии
+                subjectToDelete = null  // Сбрасываем состояние, чтобы диалог скрылся
+            }
         )
+    }
+}
+
+// --- Компонент SearchHistoryList (ВОЗВРАЩАЕМ) ---
+@Composable
+fun SearchHistoryList(
+    history: List<String>,
+    onHistoryItemClick: (String) -> Unit,
+    onClearHistoryClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("История поиска", style = MaterialTheme.typography.titleSmall)
+            TextButton(onClick = onClearHistoryClick) {
+                Text("Очистить историю")
+            }
+        }
+        LazyColumn {
+            items(history) { term ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onHistoryItemClick(term) }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(text = term, style = MaterialTheme.typography.bodyMedium)
+                }
+                Divider()
+            }
+        }
     }
 }
 

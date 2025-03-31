@@ -27,12 +27,33 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import android.content.SharedPreferences // --- Убедитесь, что этот импорт есть ---
+import com.example.learningapp.data.local.dao.SearchHistoryDao
+import com.example.learningapp.data.repository.SearchHistoryRepositoryImplRoom
+import com.example.learningapp.domain.repository.SearchHistoryRepository
+import com.example.learningapp.domain.usecase.AddSearchTermUseCase
+import com.example.learningapp.domain.usecase.ClearSearchHistoryUseCase
+import com.example.learningapp.domain.usecase.GetSearchHistoryUseCase
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule  {
+    @Provides
+    @Singleton
+    fun provideSearchHistoryDao(database: QuestionDataBase): SearchHistoryDao {
+        return database.searchHistoryDao()
+    }
 
-        // Subject
+    // --- Обновляем провайдер для репозитория истории ---
+    @Provides
+    @Singleton
+    fun provideSearchHistoryRepository(searchHistoryDao: SearchHistoryDao): SearchHistoryRepository {
+        // Возвращаем НОВУЮ реализацию, работающую с Room
+        return SearchHistoryRepositoryImplRoom(searchHistoryDao)
+    }
+
+
+    // Subject
     @Provides
     @Singleton
     fun providesGetSubjectByIdUseCase(repository: QuestionRepository) : GetSubjectByIdUseCase{
@@ -143,8 +164,9 @@ object AppModule  {
             context,
             QuestionDataBase::class.java,
             "questions_db")
+            // ВНИМАНИЕ: это удалит данные при обновлении схемы!
+            // Для продакшена нужны миграции.
             .fallbackToDestructiveMigration()
-            //.addMigrations(MIGRATION_2_3)
             .build()
     }
 
