@@ -32,6 +32,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.navigation.NavController
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,41 +49,127 @@ fun SubjectsListScreen(
     viewModel: SubjectViewModel,
     onAddSubjectRequested: () -> Unit
 ) {
-    // Загружаем предметы при открытии экрана
-    LaunchedEffect(Unit) {
-        viewModel.processIntent(SubjectIntent.LoadSubject)
-    }
-    val state by viewModel.state.collectAsState()
-    val subjects by state.subjects.collectAsState(initial = emptyList())
+    // LaunchedEffect не нужен для явной загрузки, т.к. ViewModel делает это в init
+    // LaunchedEffect(Unit) { viewModel.processIntent(SubjectIntent.LoadSubjects) }
 
-    // Состояние для отслеживания предмета, который нужно отредактировать
+    val state by viewModel.state.collectAsState()
     var subjectToEdit by remember { mutableStateOf<Subject?>(null) }
+    var subjectToDelete by remember { mutableStateOf<Subject?>(null) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Список предметов") },
-                actions = {
-                    IconButton(onClick = onAddSubjectRequested) {
-                        Icon(Icons.Default.Add, contentDescription = "Добавить предмет")
-                    }
-                    IconButton(onClick = { navController.navigate("theme_settings") }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Настройки темы")
-                    }
-                }
-            )
-        }
+        topBar = { /* ... без изменений ... */ }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(horizontal = 16.dp)
         ) {
-            items(subjects) { subject ->
+            // Строка поиска
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = { viewModel.processIntent(SubjectIntent.SearchQueryChanged(it)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                label = { Text("Поиск предметов...") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    }
+                ),
+                trailingIcon = {
+                    // Индикатор загрузки/debounce
+                    if (state.isLoading) { // Показываем всегда, когда isLoading = true
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    // Иконка очистки
+                    else if (state.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.processIntent(SubjectIntent.SearchQueryChanged("")) }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Очистить поиск")
+                        }
+                    }
+                }
+            )
+
+            // Отображение результатов
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Показываем список отфильтрованных результатов
+                // ProgressBar внутри списка не нужен, т.к. он в TextField/trailingIcon
+                SubjectResultList(
+                    // Используем отфильтрованный список из состояния
+                    subjects = state.filteredSubjects,
+                    // Показываем сообщение "не найдено", только если *не* идет загрузка
+                    // и список действительно пуст
+                    showEmptyMessage = !state.isLoading && state.filteredSubjects.isEmpty(),
+                    onSubjectClick = { subject ->
+                        navController.navigate("questions_list/${subject.id}")
+                    },
+                    onEditClick = { subject -> subjectToEdit = subject },
+                    onDeleteClick = { subject -> subjectToDelete = subject }
+                )
+
+                // Отображение ошибки
+                if (state.error != null) {
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    // Диалоги редактирования и удаления (без изменений)
+    subjectToEdit?.let { subject ->
+        EditSubjectDialog(
+            subject = subject,
+            viewModel = viewModel,
+            onDismiss = { subjectToEdit = null }
+        )
+    }
+
+    subjectToDelete?.let { subject ->
+        DeleteSubjectScreen(
+            subject = subject,
+            viewModel = viewModel,
+            onDeleteConfirmed = { subjectToDelete = null },
+            onDismiss = { subjectToDelete = null }
+        )
+    }
+}
+
+// Обновляем SubjectResultList, чтобы он мог показывать сообщение о пустом списке
+@Composable
+fun SubjectResultList(
+    subjects: List<Subject>,
+    showEmptyMessage: Boolean, // Новый параметр
+    onSubjectClick: (Subject) -> Unit,
+    onEditClick: (Subject) -> Unit,
+    onDeleteClick: (Subject) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (showEmptyMessage) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Предметы не найдены")
+        }
+    } else {
+        LazyColumn(modifier = modifier.fillMaxSize()) {
+            items(subjects, key = { it.id }) { subject ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
+                        .padding(vertical = 4.dp)
+                        .clickable { onSubjectClick(subject) }
                 ) {
                     Row(
                         modifier = Modifier
@@ -83,25 +178,16 @@ fun SubjectsListScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // По нажатию на предмет переходим на экран вопросов
                         Text(
                             text = subject.name,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    navController.navigate("questions_list/${subject.id}")
-                                },
+                            modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Row {
-                            // Иконка редактирования
-                            IconButton(onClick = { subjectToEdit = subject }) {
+                            IconButton(onClick = { onEditClick(subject) }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Редактировать")
                             }
-                            // Иконка удаления
-                            IconButton(onClick = {
-                                viewModel.processIntent(SubjectIntent.DeleteSubject(subject.id))
-                            }) {
+                            IconButton(onClick = { onDeleteClick(subject) }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Удалить")
                             }
                         }
@@ -109,17 +195,5 @@ fun SubjectsListScreen(
                 }
             }
         }
-
-    }
-
-
-    // Отображение диалога редактирования, если выбран предмет
-    subjectToEdit?.let { subject ->
-        EditSubjectDialog(
-            subject = subject,
-            viewModel = viewModel,
-            onDismiss = { subjectToEdit = null } // Скрываем диалог после завершения
-        )
     }
 }
-

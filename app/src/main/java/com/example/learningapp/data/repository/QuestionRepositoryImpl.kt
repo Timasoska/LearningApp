@@ -46,7 +46,7 @@ class QuestionRepositoryImpl @Inject constructor(
         return questionDao.getQuestionsBySubject(subjectId).map { it.toDomain() }
     }
 
-    override suspend fun getAllSubjects(): Flow<List<Subject>> {
+    override fun getAllSubjects(): Flow<List<Subject>> {
         return subjectDao.getAllSubjects().map { it.map { it.toDomain() } }
     }
 
