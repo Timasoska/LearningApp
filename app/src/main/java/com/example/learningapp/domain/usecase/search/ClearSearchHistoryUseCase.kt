@@ -1,4 +1,4 @@
-package com.example.learningapp.domain.usecase
+package com.example.learningapp.domain.usecase.search
 
 
 

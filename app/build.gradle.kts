@@ -2,8 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
+    alias(libs.plugins.kotlin.plugin.serialization)
     id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")                 // Применяем по ID
 }
 
 android {
@@ -43,6 +44,12 @@ android {
 }
 
 dependencies {
+    // Ktor Client
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio) // Or another engine like OkHttp/Android
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
     implementation (libs.androidx.hilt.navigation.compose)
     implementation (libs.material3)
 
@@ -53,11 +60,11 @@ dependencies {
     // Room
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.appcompat)
-    kapt(libs.androidx.room.compiler)
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.paging)
 
     implementation(libs.hilt.android)
-    kapt(libs.hilt.android.compiler)
+    ksp(libs.hilt.android.compiler) // <-- Замени kapt на ksp
     implementation(libs.coil)
     implementation (libs.androidx.lifecycle.viewmodel.compose)
 
@@ -76,8 +83,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
-
-kapt {
-    correctErrorTypes = true
 }

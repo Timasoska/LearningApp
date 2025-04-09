@@ -27,17 +27,62 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import android.content.SharedPreferences // --- Убедитесь, что этот импорт есть ---
 import com.example.learningapp.data.local.dao.SearchHistoryDao
+import com.example.learningapp.data.repository.AuthRepositoryImpl
 import com.example.learningapp.data.repository.SearchHistoryRepositoryImplRoom
+import com.example.learningapp.domain.repository.AuthRepository
 import com.example.learningapp.domain.repository.SearchHistoryRepository
-import com.example.learningapp.domain.usecase.AddSearchTermUseCase
-import com.example.learningapp.domain.usecase.ClearSearchHistoryUseCase
-import com.example.learningapp.domain.usecase.GetSearchHistoryUseCase
+import com.example.learningapp.domain.usecase.auth.LoginUseCase
+import com.example.learningapp.domain.usecase.auth.RegisterUseCase
+import io.ktor.client.*
+import io.ktor.client.engine.cio.* // Or Android, OkHttp
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.logging.Logger
+import kotlinx.serialization.json.Json
+import okhttp3.internal.http2.Http2Reader.Companion.logger
 
 @Module
 @InstallIn(SingletonComponent::class)
-object AppModule  {
+object AppModule {
+
+    // Inside AppModule object
+    @Provides
+    @Singleton
+    fun provideRegisterUseCase(repository: AuthRepository): RegisterUseCase {
+        return RegisterUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginUseCase(repository: AuthRepository): LoginUseCase {
+        return LoginUseCase(repository)
+    }
+
+    // Inside AppModule object
+    @Provides
+    @Singleton
+    fun provideAuthRepository(client: HttpClient): AuthRepository {
+        return AuthRepositoryImpl(client)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideHttpClient(): HttpClient {
+        return HttpClient(CIO) { // Or Android { ... } or OkHttp { ... }
+            expectSuccess = true // Optional: Fail if status code is not 2xx
+
+            install(ContentNegotiation) {
+                json(Json {
+                    prettyPrint = true
+                    isLenient = true
+                    ignoreUnknownKeys = true // Important for flexibility
+                })
+            }
+        }
+    }
+
     @Provides
     @Singleton
     fun provideSearchHistoryDao(database: QuestionDataBase): SearchHistoryDao {
@@ -56,7 +101,7 @@ object AppModule  {
     // Subject
     @Provides
     @Singleton
-    fun providesGetSubjectByIdUseCase(repository: QuestionRepository) : GetSubjectByIdUseCase{
+    fun providesGetSubjectByIdUseCase(repository: QuestionRepository): GetSubjectByIdUseCase {
         return GetSubjectByIdUseCase(repository)
     }
 
@@ -69,26 +114,26 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesGetAllSubjectsUseCase(repository: QuestionRepository) : GetAllSubjectsUseCase{
+    fun providesGetAllSubjectsUseCase(repository: QuestionRepository): GetAllSubjectsUseCase {
         return GetAllSubjectsUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesDeleteSubjectUseCase(repository: QuestionRepository) : DeleteSubjectUseCase{
+    fun providesDeleteSubjectUseCase(repository: QuestionRepository): DeleteSubjectUseCase {
         return DeleteSubjectUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesAddSubjectUseCase(repository: QuestionRepository) : AddSubjectUseCase{
+    fun providesAddSubjectUseCase(repository: QuestionRepository): AddSubjectUseCase {
         return AddSubjectUseCase(repository)
     }
 
-        //Questions
+    //Questions
     @Provides
     @Singleton
-    fun providesUpdateQuestionUseCase(repository: QuestionRepository) : UpdateQuestionUseCase{
+    fun providesUpdateQuestionUseCase(repository: QuestionRepository): UpdateQuestionUseCase {
         return UpdateQuestionUseCase(repository)
     }
 
@@ -100,53 +145,57 @@ object AppModule  {
 
     @Provides
     @Singleton
-    fun providesDeleteQuestionUseCase(repository: QuestionRepository) : DeleteQuestionUseCase{
+    fun providesDeleteQuestionUseCase(repository: QuestionRepository): DeleteQuestionUseCase {
         return DeleteQuestionUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesAddQuestionUseCase(repository: QuestionRepository) : AddQuestionUseCase{
+    fun providesAddQuestionUseCase(repository: QuestionRepository): AddQuestionUseCase {
         return AddQuestionUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesGetAllQuestionsUseCase(repository: QuestionRepository) : getAllQuestionsUseCase {
+    fun providesGetAllQuestionsUseCase(repository: QuestionRepository): getAllQuestionsUseCase {
         return getAllQuestionsUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesGetAllQuestionByIdUseCase(repository: QuestionRepository) : getQuestionByIdUseCase {
-        return  getQuestionByIdUseCase(repository)
+    fun providesGetAllQuestionByIdUseCase(repository: QuestionRepository): getQuestionByIdUseCase {
+        return getQuestionByIdUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun providesLearnedQuestionUseCase(repository: QuestionRepository) : learnedQuestionUseCase {
+    fun providesLearnedQuestionUseCase(repository: QuestionRepository): learnedQuestionUseCase {
         return learnedQuestionUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun provideQuestionRepository(questionDao: QuestionDao, subjectDao: SubjectDao): QuestionRepository {
+    fun provideQuestionRepository(
+        questionDao: QuestionDao,
+        subjectDao: SubjectDao
+    ): QuestionRepository {
         return QuestionRepositoryImpl(
             questionDao,
             subjectDao
         )
     }
-        //DAO
+
+    //DAO
     @Provides
     @Singleton
-    fun providesQuestionDao(database: QuestionDataBase) : QuestionDao {
+    fun providesQuestionDao(database: QuestionDataBase): QuestionDao {
         return database.questionDao()
     }
 
 
     @Provides
     @Singleton
-    fun providesSubjectDao(database: QuestionDataBase) : SubjectDao{
+    fun providesSubjectDao(database: QuestionDataBase): SubjectDao {
         return database.subjectDao()
     }
 
@@ -163,11 +212,11 @@ object AppModule  {
         return Room.databaseBuilder(
             context,
             QuestionDataBase::class.java,
-            "questions_db")
+            "questions_db"
+        )
             // ВНИМАНИЕ: это удалит данные при обновлении схемы!
             // Для продакшена нужны миграции.
             .fallbackToDestructiveMigration()
             .build()
     }
-
 }

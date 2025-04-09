@@ -1,4 +1,4 @@
-package com.example.learningapp.domain.usecase
+package com.example.learningapp.domain.usecase.search
 
 // Файл: app/src/main/java/com/example/learningapp/domain/usecase/search/GetSearchHistoryUseCase.kt
 import com.example.learningapp.domain.repository.SearchHistoryRepository

@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningapp.domain.model.Subject
-import com.example.learningapp.domain.usecase.AddSearchTermUseCase
-import com.example.learningapp.domain.usecase.ClearSearchHistoryUseCase
-import com.example.learningapp.domain.usecase.GetSearchHistoryUseCase
+import com.example.learningapp.domain.usecase.search.AddSearchTermUseCase
+import com.example.learningapp.domain.usecase.search.ClearSearchHistoryUseCase
+import com.example.learningapp.domain.usecase.search.GetSearchHistoryUseCase
 import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
