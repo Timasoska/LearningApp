@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.learningapp.domain.model.Subject
 import com.example.learningapp.presentation.subject.SubjectIntent
@@ -67,7 +70,7 @@ fun MainScreen(viewmodel: SubjectViewModel){
             onClick = {},
             modifier = Modifier.size(75.dp),
         ) {
-            Icon(Icons.Default.Add, "")
+            Icon(Icons.Default.Add, "Add subject button")
         }
     }
 
@@ -83,12 +86,28 @@ fun SubjectItem(textOfSubject: String){
         onClick = {},
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Text(text = textOfSubject,
+        Row(
             modifier = Modifier
-                .align(Alignment.Start)
+                .fillMaxSize()
                 .padding(25.dp),
-            fontSize = 28.sp
-        )
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ){
+            Text(
+                text = textOfSubject,
+                fontSize = 28.sp
+            )
+            Row{
+                Icon(Icons.Default.Edit,"Edit button")
+                Icon(Icons.Default.Delete, "Delete button")
+            }
+        }
     }
 }
 
+@Composable
+fun AddSubjectScreen(textOfSubject: String){
+
+
+
+}
