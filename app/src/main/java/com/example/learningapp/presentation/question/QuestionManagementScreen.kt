@@ -41,36 +41,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-
+import androidx.compose.material.icons.filled.CheckCircle // Для выученного
+import androidx.compose.material3.Checkbox // Альтернатива
+import androidx.compose.ui.graphics.Color // Для изменения цвета
 import androidx.compose.ui.platform.LocalContext
-
 import com.example.learningapp.App
-
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionManagementScreen(
-    subjectId: Int,
+    subjectId: Int, // Этот ID теперь очень важен
     navController: NavController,
     viewModel: QuestionViewModel,
     onAddQuestionRequested: () -> Unit,
     onEditQuestionRequested: (Question) -> Unit,
     onQuestionDetails: (Int) -> Unit
 ) {
-    // Состояние для показа диалога удаления
     var questionToDelete by remember { mutableStateOf<Question?>(null) }
+    val state by viewModel.state.collectAsState()
 
-    // Загрузка вопросов по subjectId
-    LaunchedEffect(subjectId) {
+    LaunchedEffect(subjectId) { // Загружаем вопросы при входе или смене subjectId
+        Log.d("QMS", "LaunchedEffect: Loading questions for subjectId: $subjectId")
         viewModel.processIntent(QuestionIntent.LoadQuestionBySubject(subjectId))
     }
-    val state by viewModel.state.collectAsState()
-    val questions by state.questions.collectAsState(initial = emptyList())
 
     Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Список вопросов") })
-        },
+        topBar = { TopAppBar(title = { Text("Список вопросов") }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddQuestionRequested) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить вопрос")
@@ -82,38 +83,65 @@ fun QuestionManagementScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Здесь можно добавить поисковую строку, если требуется
-            LazyColumn(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(questions) { question ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    ) {
-                        Row(
+            if (state.isLoading && state.questions.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.questions.isEmpty() && !state.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(state.error ?: "Вопросы для этого предмета еще не добавлены.")
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(state.questions, key = { it.id }) { question ->
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onQuestionDetails(question.id) }
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (question.isLearned) Color.Green.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
+                            )
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = question.title,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = question.answer,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            Row {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 IconButton(onClick = {
-                                    onEditQuestionRequested(question) }) {
-                                    Log.d("QMS", "Edit clicked for question: ID=${question.id}, Title='${question.title}'") // <<< ЛОГ ЗДЕСЬ
+                                    Log.d("QMS", "Toggle learned for Q_ID: ${question.id}, newStatus: ${!question.isLearned}, subjectId: $subjectId")
+                                    viewModel.processIntent(
+                                        QuestionIntent.ToggleLearnedStatus(
+                                            questionId = question.id,
+                                            newStatus = !question.isLearned,
+                                            subjectIdForReload = subjectId // Передаем subjectId для перезагрузки
+                                        )
+                                    )
+                                }) {
+                                    Icon(
+                                        imageVector = if (question.isLearned) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                                        contentDescription = if (question.isLearned) "Выучено" else "Не выучено",
+                                        tint = if (question.isLearned) Color.Green.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 8.dp)
+                                        .clickable { onQuestionDetails(question.id) } // Клик по тексту для деталей
+                                ) {
+                                    Text(text = question.title, style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = question.answer,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    Log.d("QMS", "Edit clicked for question: ID=${question.id}, Title='${question.title}'")
+                                    onEditQuestionRequested(question)
+                                }) {
                                     Icon(Icons.Default.Edit, contentDescription = "Редактировать")
                                 }
                                 IconButton(onClick = { questionToDelete = question }) {
@@ -124,24 +152,25 @@ fun QuestionManagementScreen(
                     }
                 }
             }
+            // Отображение общей ошибки, если questions пуст и есть ошибка
+            if (state.questions.isEmpty() && state.error != null && !state.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(state.error!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
+                }
+            }
         }
     }
 
-
-    // Отображаем диалог удаления, если выбран вопрос для удаления
     questionToDelete?.let { question ->
         DeleteQuestionDialog(
             question = question,
-            subjectId = subjectId,
+            subjectId = subjectId, // Передаем subjectId для перезагрузки списка
             viewModel = viewModel,
             onDeleteConfirmed = { questionToDelete = null },
             onDismiss = { questionToDelete = null }
         )
     }
 }
-
-
-
 
 
 

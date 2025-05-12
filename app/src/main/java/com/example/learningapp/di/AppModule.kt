@@ -15,7 +15,6 @@ import com.example.learningapp.domain.usecase.question.GetQuestionsBySubjectUseC
 import com.example.learningapp.domain.usecase.question.UpdateQuestionUseCase
 import com.example.learningapp.domain.usecase.question.getAllQuestionsUseCase
 import com.example.learningapp.domain.usecase.question.getQuestionByIdUseCase
-import com.example.learningapp.domain.usecase.question.learnedQuestionUseCase
 import com.example.learningapp.domain.usecase.subject.AddSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.DeleteSubjectUseCase
 import com.example.learningapp.domain.usecase.subject.GetAllSubjectsUseCase
@@ -34,6 +33,7 @@ import com.example.learningapp.domain.repository.AuthRepository
 import com.example.learningapp.domain.repository.SearchHistoryRepository
 import com.example.learningapp.domain.usecase.auth.LoginUseCase
 import com.example.learningapp.domain.usecase.auth.RegisterUseCase
+import com.example.learningapp.domain.usecase.question.UpdateLearnedStatusUseCase
 import io.ktor.client.*
 import io.ktor.client.engine.cio.* // Or Android, OkHttp
 import io.ktor.client.plugins.contentnegotiation.*
@@ -167,10 +167,11 @@ object AppModule {
         return getQuestionByIdUseCase(repository)
     }
 
+    // AppModule.kt
     @Provides
     @Singleton
-    fun providesLearnedQuestionUseCase(repository: QuestionRepository): learnedQuestionUseCase {
-        return learnedQuestionUseCase(repository)
+    fun providesUpdateLearnedStatusUseCase(repository: QuestionRepository): UpdateLearnedStatusUseCase { // Новое имя
+        return UpdateLearnedStatusUseCase(repository)
     }
 
     @Provides
