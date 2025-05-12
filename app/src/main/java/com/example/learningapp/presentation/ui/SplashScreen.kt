@@ -32,7 +32,7 @@ fun SplashScreen(
             enter = fadeIn(animationSpec = tween(1000))
         ) {
             Text(
-                text = "Welcome to learning app",
+                text = "Добро пожаловать!",
                 style = MaterialTheme.typography.headlineLarge
             )
         }
