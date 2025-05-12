@@ -51,9 +51,7 @@ fun SubjectsListScreen(
     viewModel: SubjectViewModel,
     onAddSubjectRequested: () -> Unit
 ) {
-    // Собираем состояние из ViewModel
     val state by viewModel.state.collectAsState()
-
     var subjectToEdit by remember { mutableStateOf<Subject?>(null) }
     var subjectToDelete by remember { mutableStateOf<Subject?>(null) }
     val focusManager = LocalFocusManager.current
@@ -80,14 +78,13 @@ fun SubjectsListScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Строка поиска
+            // Строка поиска (здесь filteredSubjects не используется)
             OutlinedTextField(
                 value = state.searchQuery,
                 onValueChange = { viewModel.processIntent(SubjectIntent.SearchQueryChanged(it)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
-                    // --- ВОЗВРАЩАЕМ обработчик фокуса ---
                     .onFocusChanged { focusState ->
                         viewModel.processIntent(SubjectIntent.SearchBarFocusChanged(focusState.isFocused))
                     },
@@ -96,14 +93,14 @@ fun SubjectsListScreen(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        // --- ВОЗВРАЩАЕМ SubmitSearch ---
                         viewModel.processIntent(SubjectIntent.SubmitSearch(state.searchQuery))
                         keyboardController?.hide()
                         focusManager.clearFocus()
                     }
                 ),
                 trailingIcon = {
-                    if (state.isLoading) {
+                    // Здесь filteredSubjects не используется
+                    if (state.isLoading && state.searchQuery.isNotEmpty()) { // Показываем индикатор во время активного поиска
                         CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else if (state.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.processIntent(SubjectIntent.SearchQueryChanged("")) }) {
@@ -115,36 +112,36 @@ fun SubjectsListScreen(
 
             // Отображение ProgressBar или Истории/Результатов
             Box(modifier = Modifier.fillMaxSize()) {
-                // --- Условное отображение Истории или Результатов ---
                 if (state.showHistory) {
-                    // --- Показываем Историю ---
                     SearchHistoryList(
                         history = state.searchHistory,
                         onHistoryItemClick = { term ->
                             viewModel.processIntent(SubjectIntent.HistoryItemClicked(term))
-                            // Фокус и клавиатура управляются ViewModel
                         },
                         onClearHistoryClick = {
                             viewModel.processIntent(SubjectIntent.ClearSearchHistory)
                         }
                     )
                 } else {
-                    // --- Показываем ProgressBar или Результаты ---
-                    // Показываем ProgressBar если isLoading И (список пуст ИЛИ запрос непустой - т.е. идет debounce/фильтрация)
-                    val showLoadingIndicator = state.isLoading && (state.filteredSubjects.isEmpty() || state.searchQuery.isNotEmpty())
+                    // Условие для индикатора загрузки:
+                    // Показываем, если isLoading=true И (либо это начальная загрузка и список state.subjects пуст,
+                    // ЛИБО идет активный поиск по непустому запросу)
+                    val showLoadingIndicator = state.isLoading && (state.subjects.isEmpty() || state.searchQuery.isNotEmpty())
+
                     if (showLoadingIndicator) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                     } else {
-                        // Показываем список результатов
                         SubjectResultList(
-                            subjects = state.filteredSubjects,
-                            // Сообщение "не найдено", если не грузим и список пуст
-                            showEmptyMessage = !state.isLoading && state.filteredSubjects.isEmpty(),
+                            subjects = state.subjects, // <<< ЗАМЕНА №1: Используем state.subjects
+                            // Сообщение "не найдено" показывается, если:
+                            // - Загрузка не идет
+                            // - Список state.subjects пуст
+                            // - И поисковый запрос state.searchQuery НЕ пустой
+                            showEmptyMessage = !state.isLoading && state.subjects.isEmpty() && state.searchQuery.isNotBlank(), // <<< ЗАМЕНА №2: Условие использует state.subjects и state.searchQuery
                             onSubjectClick = { subject ->
                                 navController.navigate("questions_list/${subject.id}")
-                                // --- ВОЗВРАЩАЕМ добавление в историю при клике ---
                                 viewModel.processIntent(SubjectIntent.SubmitSearch(subject.name))
-                                focusManager.clearFocus() // Убираем фокус с поиска
+                                focusManager.clearFocus()
                             },
                             onEditClick = { subject -> subjectToEdit = subject },
                             onDeleteClick = { subject -> subjectToDelete = subject }
@@ -152,10 +149,10 @@ fun SubjectsListScreen(
                     }
                 }
 
-                // Отображение ошибки
+                // Отображение ошибки (здесь filteredSubjects не используется)
                 if (state.error != null) {
                     Text(
-                        text = state.error!!,
+                        text = state.error ?: "Неизвестная ошибка",
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)
                     )
@@ -164,33 +161,21 @@ fun SubjectsListScreen(
         }
     }
 
-    // Диалоги редактирования и удаления (без изменений)
-    // Если subjectToEdit не null (т.е. пользователь нажал "Редактировать"),
-    // показываем диалог редактирования
-    subjectToEdit?.let { subject -> // `it` здесь будет равно subjectToEdit
+    // Диалоги (здесь filteredSubjects не используется)
+    subjectToEdit?.let { subject ->
         EditSubjectDialog(
-            subject = subject,      // Передаем выбранный предмет
-            viewModel = viewModel,  // Передаем ViewModel для вызова UpdateSubject
-            onDismiss = {           // Лямбда, которая вызовется при закрытии диалога
-                subjectToEdit = null // Сбрасываем состояние, чтобы диалог скрылся
-            }
+            subject = subject,
+            viewModel = viewModel,
+            onDismiss = { subjectToEdit = null }
         )
     }
 
-    // Если subjectToDelete не null (т.е. пользователь нажал "Удалить"),
-    // показываем диалог подтверждения удаления
-    subjectToDelete?.let { subject -> // `it` здесь будет равно subjectToDelete
-        // Используем существующий Composable DeleteSubjectScreen,
-        // который по сути является AlertDialog'ом
+    subjectToDelete?.let { subject ->
         DeleteSubjectScreen(
-            subject = subject,          // Передаем выбранный предмет
-            viewModel = viewModel,      // Передаем ViewModel для вызова DeleteSubject
-            onDeleteConfirmed = {       // Лямбда при подтверждении удаления
-                subjectToDelete = null  // Сбрасываем состояние, чтобы диалог скрылся
-            },
-            onDismiss = {               // Лямбда при отмене или закрытии
-                subjectToDelete = null  // Сбрасываем состояние, чтобы диалог скрылся
-            }
+            subject = subject,
+            viewModel = viewModel,
+            onDeleteConfirmed = { subjectToDelete = null },
+            onDismiss = { subjectToDelete = null }
         )
     }
 }
@@ -240,18 +225,23 @@ fun SearchHistoryList(
 // Обновляем SubjectResultList, чтобы он мог показывать сообщение о пустом списке
 @Composable
 fun SubjectResultList(
-    subjects: List<Subject>,
-    showEmptyMessage: Boolean, // Новый параметр
+    subjects: List<Subject>, // Принимает уже state.subjects
+    showEmptyMessage: Boolean, // true, если "не найдено по запросу"
     onSubjectClick: (Subject) -> Unit,
     onEditClick: (Subject) -> Unit,
     onDeleteClick: (Subject) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (showEmptyMessage) {
+    if (showEmptyMessage) { // Если искали и не нашли
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Предметы не найдены")
+            Text("Предметы не найдены по вашему запросу.") // Это сообщение теперь корректно
         }
-    } else {
+    } else if (subjects.isEmpty()) { // Если список просто пуст (не было поиска или все удалили)
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Список предметов пуст. Нажмите '+' для добавления.")
+        }
+    }
+    else {
         LazyColumn(modifier = modifier.fillMaxSize()) {
             items(subjects, key = { it.id }) { subject ->
                 Card(

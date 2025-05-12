@@ -21,118 +21,106 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
-
+import com.example.learningapp.presentation.authorization.Result
+import kotlinx.coroutines.Job
 
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SubjectViewModel @Inject constructor(
-    private val addSubjectUseCase: AddSubjectUseCase,
-    private val deleteSubjectUseCase: DeleteSubjectUseCase,
     private val getAllSubjectsUseCase: GetAllSubjectsUseCase,
-    private val getSubjectByIdUseCase: GetSubjectByIdUseCase,
+    private val addSubjectUseCase: AddSubjectUseCase,
     private val updateSubjectUseCase: UpdateSubjectUseCase,
-    // --- Внедряем UseCases истории ---
-    private val getSearchHistoryUseCase: GetSearchHistoryUseCase, // <--- Зависимость есть
-    private val addSearchTermUseCase: AddSearchTermUseCase,     // <--- Зависимость есть
-    private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase // <--- Зависимость есть
+    private val deleteSubjectUseCase: DeleteSubjectUseCase,
+    private val getSearchHistoryUseCase: GetSearchHistoryUseCase,
+    private val addSearchTermUseCase: AddSearchTermUseCase,
+    private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SubjectState())
     val state: StateFlow<SubjectState> = _state.asStateFlow()
 
-    private val _searchQuery = MutableStateFlow("")
-    private var _fullSubjectList = emptyList<Subject>()
+    private var _fullSubjectList = emptyList<Subject>() // Локальный кэш полного списка
+    private var searchJob: Job? = null // Для отмены предыдущего поиска/фильтрации
+
+    // Для обработки ввода в реальном времени в TextField поиска
+    private val _searchQueryFlow = MutableStateFlow("")
 
     init {
-        initializeViewModel()
-    }
-
-    private fun initializeViewModel() {
-        // 1. Комбинируем поток данных и поток _дебаунсированного_ запроса
+        // Загрузка истории поиска при инициализации
         viewModelScope.launch {
-            // Устанавливаем начальную загрузку один раз
-            _state.update { it.copy(isLoading = true, error = null) }
-
-            combine(
-                getAllSubjectsUseCase().catch { e ->
-                    Log.e("SubjectViewModel", "Error getting subjects", e)
-                    _state.update { it.copy(isLoading = false, error = "Ошибка загрузки: ${e.message}") }
-                    emit(emptyList())
-                },
-                _searchQuery.debounce(300) // Дебаунс на 300 мс
-            ) { subjectsList, debouncedQuery ->
-                // Эта лямбда выполняется после debounce ИЛИ когда приходит новый список
-                Log.d("SubjectViewModel", "Combine triggered. Query: '$debouncedQuery', List size: ${subjectsList.size}")
-                _fullSubjectList = subjectsList // Сохраняем полный список
-                val filtered = filterSubjects(subjectsList, debouncedQuery)
-                // Возвращаем пару: отфильтрованный список и актуальный (дебаунсированный) запрос
-                Pair(filtered, debouncedQuery)
-            }
-                .collectLatest { (filteredList, finalQuery) ->
-                    // Обновляем состояние после завершения debounce/фильтрации
-                    Log.d("SubjectViewModel", "Updating state. Filtered size: ${filteredList.size}, Query: '$finalQuery'")
-                    _state.update {
-                        it.copy(
-                            isLoading = false, // Загрузка/фильтрация завершена
-                            searchQuery = finalQuery, // Обновляем searchQuery на дебаунсированный
-                            filteredSubjects = filteredList,
-                            error = null // Сбрасываем ошибку при успехе
-                        )
-                    }
-                    updateShowHistoryState() // Пересчитываем видимость истории
-                }
-        }
-
-        // 2. Сбор истории поиска (без изменений)
-        viewModelScope.launch {
-            getSearchHistoryUseCase().collect { history: List<String> ->
+            getSearchHistoryUseCase().collect { history ->
                 _state.update { it.copy(searchHistory = history) }
-                updateShowHistoryState()
+                updateShowHistoryState() // Обновляем видимость истории
             }
         }
 
-        // 3. Обработка НЕПОСРЕДСТВЕННОГО ввода в TextField и isLoading ВО ВРЕМЯ debounce
+        // Обработка изменений searchQuery с debounce для фильтрации
         viewModelScope.launch {
-            _searchQuery.collect { query ->
-                // Показываем isLoading, если пользователь начал печатать (запрос не пустой)
-                // и еще не пришел результат от combine (который поставит isLoading=false)
-                val shouldBeLoading = query.isNotEmpty()
-                // Обновляем searchQuery для TextField и isLoading для индикатора debounce
-                _state.update { currentState ->
-                    currentState.copy(
-                        searchQuery = query, // Обновляем немедленно для UI
-                        // Ставим isLoading=true если начали печатать,
-                        // ИЛИ сохраняем true, если уже идет основная загрузка
-                        isLoading = shouldBeLoading || (currentState.isLoading && _fullSubjectList.isEmpty())
-                    )
+            _searchQueryFlow
+                .debounce(300) // Задержка для реакции на ввод
+                .collectLatest { query ->
+                    filterSubjectsAndUpdateState(query)
                 }
-                updateShowHistoryState()
-            }
         }
+        // Первоначальная загрузка данных
+        processIntent(SubjectIntent.LoadInitialData)
     }
-
 
     fun processIntent(intent: SubjectIntent) {
+        Log.d("SubjectViewModel", "Processing Intent: $intent")
         when (intent) {
-            is SubjectIntent.SearchQueryChanged -> { _searchQuery.value = intent.query }
-            is SubjectIntent.SearchBarFocusChanged -> { handleFocusChange(intent.isFocused) }
-            is SubjectIntent.SubmitSearch -> { submitSearch(intent.query) } // <-- Вызываем ИСПРАВЛЕННЫЙ метод
-            is SubjectIntent.HistoryItemClicked -> { handleHistoryClick(intent.term) } // <-- Вызываем ИСПРАВЛЕННЫЙ метод
-            SubjectIntent.ClearSearchHistory -> { clearHistory() } // <-- Вызываем ИСПРАВЛЕННЫЙ метод
-            SubjectIntent.LoadSubjects -> { initializeViewModel() }
-            is SubjectIntent.AddSubject -> addSubject(intent.name)
-            is SubjectIntent.DeleteSubject -> deleteSubject(intent.id)
-            is SubjectIntent.LoadSubjectById -> loadSubjectById(intent.id)
-            is SubjectIntent.UpdateSubject -> updateSubject(intent.subject)
+            is SubjectIntent.LoadInitialData -> loadInitialSubjects()
+            is SubjectIntent.SearchQueryChanged -> {
+                _state.update { it.copy(searchQuery = intent.query) }
+                _searchQueryFlow.value = intent.query // Триггерим debounce-поток
+                updateShowHistoryState()
+            }
+            is SubjectIntent.SearchBarFocusChanged -> handleFocusChange(intent.isFocused)
+            is SubjectIntent.SubmitSearch -> submitSearchTerm(intent.query)
+            is SubjectIntent.HistoryItemClicked -> handleHistoryItemClick(intent.term)
+            is SubjectIntent.ClearSearchHistory -> clearUserSearchHistory()
+            is SubjectIntent.AddNewSubject -> addNewSubject(intent.name)
+            is SubjectIntent.UpdateExistingSubject -> updateUserSubject(intent.subject)
+            is SubjectIntent.DeleteExistingSubject -> deleteUserSubject(intent.id)
         }
     }
 
-    private fun filterSubjects(subjects: List<Subject>, query: String): List<Subject> {
-        return if (query.isBlank()) subjects else subjects.filter { it.name.contains(query, ignoreCase = true) }
+    private fun loadInitialSubjects() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            getAllSubjectsUseCase() // Возвращает Flow<List<Subject>>
+                .catch { e -> // Обработка ошибок на уровне сбора Flow
+                    Log.e("SubjectViewModel", "Error loading initial subjects", e)
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = e.message ?: "Failed to load subjects",
+                            subjects = emptyList() // Очищаем список при ошибке
+                        )
+                    }
+                    _fullSubjectList = emptyList()
+                }
+                .collectLatest { subjectsFromServer ->
+                    Log.d("SubjectViewModel", "Loaded ${subjectsFromServer.size} subjects from server.")
+                    _fullSubjectList = subjectsFromServer
+                    // Фильтруем по текущему searchQuery (если он был введен до завершения загрузки)
+                    filterSubjectsAndUpdateState(_state.value.searchQuery)
+                    _state.update { it.copy(isLoading = false) } // Загрузка завершена
+                }
+        }
     }
 
-    // --- Логика истории (ИСПРАВЛЕНИЯ: добавляем вызовы UseCase) ---
+    private fun filterSubjectsAndUpdateState(query: String) {
+        val filtered = if (query.isBlank()) {
+            _fullSubjectList
+        } else {
+            _fullSubjectList.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        _state.update { it.copy(subjects = filtered) }
+    }
+
+
     private fun handleFocusChange(isFocused: Boolean) {
         _state.update { it.copy(isSearchBarFocused = isFocused) }
         updateShowHistoryState()
@@ -141,103 +129,84 @@ class SubjectViewModel @Inject constructor(
     private fun updateShowHistoryState() {
         _state.update { currentState ->
             val shouldShow = currentState.isSearchBarFocused &&
-                    currentState.searchQuery.isBlank() &&
+                    currentState.searchQuery.isBlank() && // Показываем историю только если поле поиска пустое
                     currentState.searchHistory.isNotEmpty()
-            // Улучшение: не показываем историю, если идет первоначальная загрузка
-            val primaryLoading = currentState.isLoading && _fullSubjectList.isEmpty()
-            if (primaryLoading) {
-                currentState.copy(showHistory = false)
-            } else {
-                currentState.copy(showHistory = shouldShow)
-            }
+            currentState.copy(showHistory = shouldShow)
         }
     }
 
-
-    private fun submitSearch(query: String) {
-        val trimmedQuery = query.trim()
-        if (trimmedQuery.isNotBlank()) {
+    private fun submitSearchTerm(term: String) {
+        val trimmedTerm = term.trim()
+        if (trimmedTerm.isNotBlank()) {
             viewModelScope.launch {
-                addSearchTermUseCase(trimmedQuery) // <-- ИСПОЛЬЗУЕМ UseCase
-            }
-            _searchQuery.value = trimmedQuery // Обновляем для debounce/фильтрации
-            // Скрываем историю/фокус после подтверждения поиска
-            _state.update { it.copy(showHistory = false, isSearchBarFocused = false) }
-        } else {
-            _state.update { it.copy(showHistory = false, isSearchBarFocused = false) }
-        }
-    }
-
-    private fun handleHistoryClick(term: String) {
-        _searchQuery.value = term // Запускаем поиск
-        _state.update { it.copy(isSearchBarFocused = false, showHistory = false, isLoading = true) } // Обновляем UI
-        viewModelScope.launch {
-            addSearchTermUseCase(term) // <-- ИСПОЛЬЗУЕМ UseCase (для перемещения вверх)
-        }
-    }
-
-    private fun clearHistory() {
-        viewModelScope.launch {
-            clearSearchHistoryUseCase() // <-- ИСПОЛЬЗУЕМ UseCase
-            _state.update { it.copy(showHistory = false) } // Обновляем UI
-        }
-    }
-
-    // --- CRUD операции (РЕАЛИЗУЕМ) ---
-    private fun addSubject(name: String) {
-        viewModelScope.launch {
-            Log.d("SubjectViewModel", "Attempting to add subject: $name")
-            try {
-                val result = addSubjectUseCase(name) // Вызываем UseCase
-                Log.d("SubjectViewModel", "addSubjectUseCase completed. Result: $result")
-                // Список обновится автоматически через Flow -> combine
-            } catch (e: Exception) {
-                Log.e("SubjectViewModel", "Error adding subject: $name", e)
-                // Обновляем только ошибку, isLoading управляется combine
-                _state.update { it.copy(error = "Ошибка добавления предмета: ${e.message}") }
+                addSearchTermUseCase(trimmedTerm) // UseCase для добавления в историю
             }
         }
+        // Скрываем историю и убираем фокус после сабмита
+        _state.update { it.copy(showHistory = false, isSearchBarFocused = false) }
+        // Фильтрация произойдет через _searchQueryFlow, если query изменился
     }
 
-    private fun deleteSubject(id: Int) {
+    private fun handleHistoryItemClick(term: String) {
+        // Обновляем searchQuery в State и в _searchQueryFlow, чтобы запустить фильтрацию
+        _state.update { it.copy(searchQuery = term, isSearchBarFocused = false, showHistory = false) }
+        _searchQueryFlow.value = term
         viewModelScope.launch {
-            Log.d("SubjectViewModel", "Attempting to delete subject ID: $id")
-            try {
-                deleteSubjectUseCase(id) // Вызываем UseCase
-                Log.d("SubjectViewModel", "deleteSubjectUseCase completed for ID: $id")
-                // Список обновится автоматически через Flow -> combine
-            } catch (e: Exception) {
-                Log.e("SubjectViewModel", "Error deleting subject ID: $id", e)
-                _state.update { it.copy(isLoading = false, error = "Ошибка удаления предмета: ${e.message}") }
-            }
+            addSearchTermUseCase(term) // Добавляем/обновляем в истории
         }
     }
 
-    private fun updateSubject(subject: Subject) {
+    private fun clearUserSearchHistory() {
         viewModelScope.launch {
-            Log.d("SubjectViewModel", "Attempting to update subject: ${subject.id} - ${subject.name}")
-            try {
-                updateSubjectUseCase(subject) // Вызываем UseCase
-                Log.d("SubjectViewModel", "updateSubjectUseCase completed for ID: ${subject.id}")
-                // Список обновится автоматически через Flow -> combine
-            } catch (e: Exception) {
-                Log.e("SubjectViewModel", "Error updating subject ID: ${subject.id}", e)
-                _state.update { it.copy(isLoading = false, error = "Ошибка обновления предмета: ${e.message}") }
-            }
+            clearSearchHistoryUseCase()
+            // История обновится через Flow от getSearchHistoryUseCase,
+            // и updateShowHistoryState скроет ее, если она стала пустой.
         }
     }
 
-    private fun loadSubjectById(id: Int) {
+    private fun addNewSubject(name: String) {
         viewModelScope.launch {
-            Log.d("SubjectViewModel", "Loading subject by ID: $id")
             _state.update { it.copy(isLoading = true) }
+            when (val result = addSubjectUseCase(name)) {
+                is Result.Success -> {
+                    // После успешного добавления нужно перезагрузить список предметов
+                    // или, если сервер возвращает созданный объект, можно добавить его локально (сложнее с MVI)
+                    // Проще вс его - инициировать перезагрузку.
+                    Log.d("SubjectViewModel", "Subject added with ID: ${result.data}. Reloading subjects.")
+                    loadInitialSubjects() // Перезагружаем весь список
+                }
+                is Result.Error -> {
+                    _state.update { it.copy(isLoading = false, error = result.message) }
+                }
+                else -> { /* No-op для Result.Loading, если есть */ }
+            }
+        }
+    }
+
+    private fun updateUserSubject(subject: Subject) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            // Предположим, updateSubjectUseCase возвращает Result<Unit> или кидает Exception
             try {
-                val subject = getSubjectByIdUseCase(id)
-                Log.d("SubjectViewModel", "Subject loaded: $subject")
-                _state.update { it.copy(isLoading = false, currentSubject = subject, error = null) }
+                updateSubjectUseCase(subject) // suspend fun
+                Log.d("SubjectViewModel", "Subject updated: ${subject.id}. Reloading subjects.")
+                loadInitialSubjects() // Перезагружаем
             } catch (e: Exception) {
-                Log.e("SubjectViewModel", "Error loading subject ID: $id", e)
-                _state.update { it.copy(isLoading = false, error = "Не удалось загрузить предмет $id: ${e.message}") }
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to update subject") }
+            }
+        }
+    }
+
+    private fun deleteUserSubject(id: Int) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            // Предположим, deleteSubjectUseCase возвращает Result<Unit> или кидает Exception
+            try {
+                deleteSubjectUseCase(id) // suspend fun
+                Log.d("SubjectViewModel", "Subject deleted: $id. Reloading subjects.")
+                loadInitialSubjects() // Перезагружаем
+            } catch (e: Exception) {
+                _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to delete subject") }
             }
         }
     }

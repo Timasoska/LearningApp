@@ -7,10 +7,8 @@ import javax.inject.Inject
 
 class GetAllSubjectsUseCase @Inject constructor(
     private val repository: QuestionRepository
-){
-
-    operator fun invoke() : Flow<List<Subject>> {
+) {
+    operator fun invoke(): Flow<List<Subject>> { // Или Flow<Result<List<Subject>>>
         return repository.getAllSubjects()
     }
-
 }

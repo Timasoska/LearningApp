@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSubjectScreen(
-    onSubjectAdded: () -> Unit,
+    onSubjectAdded: () -> Unit, // Эта функция вызывается для навигации назад
     viewModel: SubjectViewModel
 ){
     var subjectName by remember { mutableStateOf("")}
@@ -34,11 +34,12 @@ fun AddSubjectScreen(
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 if(subjectName.isNotBlank()){
-                    viewModel.processIntent(SubjectIntent.AddSubject(subjectName))
-                    onSubjectAdded() //Возможно тут будет ошибка и это нужно будет убрать
+                    // Используем новое имя интента: AddNewSubject
+                    viewModel.processIntent(SubjectIntent.AddNewSubject(subjectName))
+                    onSubjectAdded() // Вызываем после отправки интента, чтобы вернуться назад
                 }
             }) {
-                Icon(Icons.Default.Check, contentDescription = "Save")
+                Icon(Icons.Default.Check, contentDescription = "Сохранить") // "Сохранить" более подходящее описание
             }
         }
     ) { padding ->
@@ -56,5 +57,4 @@ fun AddSubjectScreen(
             )
         }
     }
-
 }

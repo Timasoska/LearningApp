@@ -176,12 +176,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideQuestionRepository(
-        questionDao: QuestionDao,
-        subjectDao: SubjectDao
+        client: HttpClient,             // <<< Теперь передаем HttpClient
+        sessionManager: SessionManager  // <<< Теперь передаем SessionManager
     ): QuestionRepository {
         return QuestionRepositoryImpl(
-            questionDao,
-            subjectDao
+            client,
+            sessionManager
         )
     }
 

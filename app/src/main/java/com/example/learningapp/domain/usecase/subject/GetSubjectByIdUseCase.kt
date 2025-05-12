@@ -7,7 +7,8 @@ import javax.inject.Inject
 class GetSubjectByIdUseCase @Inject constructor(
     private val repository: QuestionRepository
 ) {
-   suspend operator fun invoke(id: Int): Subject{
-       return repository.getSubjectById(id)
-   }
+    // Вариант 1: UseCase возвращает Subject?
+    suspend operator fun invoke(id: Int): Subject? {
+        return repository.getSubjectById(id)
+    }
 }

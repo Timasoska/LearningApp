@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.learningapp.data.remote.LoginRequestDto
 import com.example.learningapp.data.remote.RegisterRequestDto
 import com.example.learningapp.data.remote.AuthResponseDto
+import com.example.learningapp.di.SessionManager
 import com.example.learningapp.domain.usecase.auth.LoginUseCase
 import com.example.learningapp.domain.usecase.auth.RegisterUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,11 +16,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val registerUseCase: RegisterUseCase,
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val sessionManager: SessionManager // Инжектируем SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())
@@ -28,65 +29,38 @@ class AuthViewModel @Inject constructor(
     fun register(email: String, login: String, password: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, registrationSuccess = false) }
-
             val request = RegisterRequestDto(email = email, login = login, password = password)
-            // registerUseCase теперь возвращает kotlin.Result<AuthResponseDto>
-            // Тип можно вывести автоматически или указать kotlin.Result
-            val result: kotlin.Result<AuthResponseDto> = registerUseCase(request) // <-- Используем kotlin.Result
+            val result = registerUseCase(request)
 
-            // Используем стандартные методы kotlin.Result
-            result.onSuccess { authData -> // Выполняется если isSuccess
+            result.onSuccess { authData ->
+                authData.userId?.let { userId -> // Сохраняем userId, если он есть
+                    sessionManager.saveUserId(userId)
+                }
                 _state.update {
                     it.copy(
                         isLoading = false,
                         registrationSuccess = true,
-                        loggedInUserId = authData.userId // Прямой доступ к данным внутри onSuccess
+                        loggedInUserId = authData.userId
                     )
                 }
-            }.onFailure { exception -> // Выполняется если isFailure
+            }.onFailure { exception ->
                 _state.update {
-                    it.copy(
-                        isLoading = false,
-                        // Используем сообщение из исключения
-                        error = exception.message ?: "Registration failed"
-                    )
+                    it.copy(isLoading = false, error = exception.message ?: "Registration failed")
                 }
             }
-            // Альтернативная запись с if/else (если предпочитаешь)
-            /*
-            if (result.isSuccess) {
-                val authData = result.getOrNull() // Безопасно получаем данные
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        registrationSuccess = true,
-                        loggedInUserId = authData?.userId // Доступ к userId
-                    )
-                }
-            } else { // result.isFailure
-                val exception = result.exceptionOrNull() // Получаем исключение
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        // Используем сообщение из исключения
-                        error = exception?.message ?: "Registration failed"
-                    )
-                }
-            }
-            */
         }
     }
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null, loginSuccess = false) }
-
             val request = LoginRequestDto(email = email, password = password)
-            // loginUseCase теперь возвращает kotlin.Result<AuthResponseDto>
-            val result: kotlin.Result<AuthResponseDto> = loginUseCase(request) // <-- Используем kotlin.Result
+            val result = loginUseCase(request)
 
-            // Используем стандартные методы kotlin.Result
             result.onSuccess { authData ->
+                authData.userId?.let { userId -> // Сохраняем userId, если он есть
+                    sessionManager.saveUserId(userId)
+                }
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -96,38 +70,20 @@ class AuthViewModel @Inject constructor(
                 }
             }.onFailure { exception ->
                 _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = exception.message ?: "Login failed"
-                    )
+                    it.copy(isLoading = false, error = exception.message ?: "Login failed")
                 }
             }
-            // Альтернативная запись с if/else
-            /*
-            if (result.isSuccess) {
-                val authData = result.getOrNull() // Безопасно получаем данные
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        loginSuccess = true,
-                        loggedInUserId = authData?.userId // Доступ к userId
-                    )
-                }
-            } else { // result.isFailure
-                val exception = result.exceptionOrNull() // Получаем исключение
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        // Используем сообщение из исключения
-                        error = exception?.message ?: "Login failed"
-                    )
-                }
-            }
-            */
         }
     }
 
-    // Остальные функции без изменений
+    // Метод для выхода пользователя (если будешь реализовывать)
+    fun logout() {
+        sessionManager.clearSession()
+        // Здесь также может быть логика для навигации на экран логина,
+        // сброса состояния других ViewModel и т.д.
+        _state.update { AuthState() } // Сброс состояния AuthViewModel
+    }
+
     fun clearError() {
         _state.update { it.copy(error = null) }
     }

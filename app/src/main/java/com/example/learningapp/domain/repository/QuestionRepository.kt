@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface QuestionRepository {
 
     //Вопросы
-    suspend fun getQuestionById(id: Int): Question
+    suspend fun getQuestionById(id: Int): Question?
     fun getAllQuestions(): Flow<List<Question>>
     suspend fun addQuestion(question: Question): Long
     suspend fun deleteQuestion(id: Int)
@@ -18,7 +18,7 @@ interface QuestionRepository {
 
     //Предметы
     fun getAllSubjects(): Flow<List<Subject>>
-    suspend fun getSubjectById(id: Int): Subject
+    suspend fun getSubjectById(id: Int): Subject?
     suspend fun addSubject(name: String): Long
     suspend fun deleteSubject(id: Int)
     suspend fun updateSubject(subject: Subject)

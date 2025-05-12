@@ -35,7 +35,7 @@ fun EditSubjectDialog(
         confirmButton = {
             TextButton(onClick = {
                 if (subjectName.isNotBlank()) {
-                    viewModel.processIntent(SubjectIntent.UpdateSubject(Subject(subject.id, subjectName)))
+                    viewModel.processIntent(SubjectIntent.UpdateExistingSubject(Subject(subject.id, subjectName)))
                     onDismiss()
                 }
             }) {

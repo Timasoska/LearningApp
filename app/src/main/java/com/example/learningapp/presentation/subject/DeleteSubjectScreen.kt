@@ -11,8 +11,8 @@ import com.example.learningapp.presentation.subject.SubjectViewModel
 @Composable
 fun DeleteSubjectScreen(
     subject: Subject,
-    onDeleteConfirmed: () -> Unit,
-    onDismiss: () -> Unit,
+    onDeleteConfirmed: () -> Unit, // Вызывается для закрытия диалога/обновления UI после подтверждения
+    onDismiss: () -> Unit,         // Вызывается для закрытия диалога при отмене
     viewModel: SubjectViewModel
 ) {
     AlertDialog(
@@ -21,8 +21,9 @@ fun DeleteSubjectScreen(
         text = { Text("Вы действительно хотите удалить предмет \"${subject.name}\"?") },
         confirmButton = {
             TextButton(onClick = {
-                viewModel.processIntent(SubjectIntent.DeleteSubject(subject.id))
-                onDeleteConfirmed()
+                // Используем новое имя интента: DeleteExistingSubject
+                viewModel.processIntent(SubjectIntent.DeleteExistingSubject(subject.id))
+                onDeleteConfirmed() // Вызываем после отправки интента
             }) {
                 Text("Удалить")
             }

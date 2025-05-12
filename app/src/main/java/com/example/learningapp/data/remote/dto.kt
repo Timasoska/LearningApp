@@ -2,30 +2,44 @@ package com.example.learningapp.data.remote
 
 import kotlinx.serialization.Serializable
 
+// --- Subjects DTOs ---
 @Serializable
-data class RegisterRequestDto(
-    val email: String, // Field names MUST match server exactly
-    val password: String,
-    // Add 'login' field if your server RegisterRequest still has it
-    val login: String // Assuming server uses this field name based on its RegisterRequest
+data class SubjectResponseDto( // Для получения данных от сервера
+    val id: Int,
+    val name: String,
+    val userId: Int // Сервер возвращает userId, хоть он и не нужен напрямую в доменной модели клиента
 )
 
 @Serializable
-data class LoginRequestDto(
-    val email: String,
-    val password: String
+data class SubjectRequestDto( // Для отправки данных на сервер (создание/обновление)
+    val name: String
 )
 
-// Matches server's AuthResponse
+// --- Questions DTOs ---
 @Serializable
-data class AuthResponseDto(
-    val success: Boolean,
-    val message: String,
-    val userId: Int? = null
+data class QuestionResponseDto( // Для получения данных от сервера
+    val id: Int,
+    val title: String,
+    val answer: String,
+    val isLearned: Boolean,
+    val subjectId: Int
 )
 
-// Matches server's ErrorResponse
 @Serializable
-data class ErrorResponseDto(
+data class QuestionRequestDto( // Для отправки данных на сервер (создание/обновление)
+    val title: String,
+    val answer: String,
+    val isLearned: Boolean? = null // Опционально при создании, если на сервере есть default
+)
+
+@Serializable
+data class LearnedStatusUpdateRequestDto( // Для PATCH запроса на обновление статуса изученности
+    val isLearned: Boolean
+)
+
+// Может понадобиться для ответа сервера на простые операции типа PUT/DELETE/PATCH,
+// если сервер возвращает что-то вроде {"message": "Success"}
+@Serializable
+data class SimpleMessageResponseDto(
     val message: String
 )
