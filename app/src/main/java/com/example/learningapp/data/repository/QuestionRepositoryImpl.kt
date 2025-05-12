@@ -27,22 +27,23 @@ class QuestionRepositoryImpl @Inject constructor(
 ) : QuestionRepository {
 
     // --- Subjects (методы без изменений из предыдущих версий) ---
+    // QuestionRepositoryImpl.kt
     override fun getAllSubjects(): Flow<List<Subject>> = flow {
         val userId = sessionManager.getCurrentUserId()
         if (userId == null) {
-            Log.w("QuestionRepoImpl", "getAllSubjects: User not logged in. Emitting empty list.")
-            emit(emptyList()); return@flow
+            Log.w("QuestionRepoImpl", "getAllSubjects: User not logged in.")
+            // emit(emptyList()) // Можно не эмитить здесь, если Flow должен просто завершиться или выдать ошибку
+            throw IllegalStateException("User not logged in") // Или кастомное исключение
         }
         try {
-            Log.d("QuestionRepoImpl", "getAllSubjects: Fetching subjects for userId: $userId")
+            Log.d("QuestionRepoImpl", "getAllSubjects: Fetching for userId: $userId")
             val dtoList: List<SubjectResponseDto> = client.get("${Constants.BASE_URL}/subjects") {
                 parameter("userId", userId)
             }.body()
-            Log.d("QuestionRepoImpl", "getAllSubjects: Received ${dtoList.size} subjects from server.")
             emit(dtoList.map { it.toDomainModel() })
-        } catch (e: Exception) {
-            Log.e("QuestionRepoImpl", "getAllSubjects: Error fetching subjects for user $userId: ${e.message}", e)
-            emit(emptyList())
+        } catch (e: Exception) { // Ловим все исключения, включая сетевые
+            Log.e("QuestionRepoImpl", "getAllSubjects: Error for user $userId: ${e.message}", e)
+            throw e // Просто пробрасываем исключение дальше. ViewModel его поймает.
         }
     }
     override suspend fun addSubject(name: String): Long {

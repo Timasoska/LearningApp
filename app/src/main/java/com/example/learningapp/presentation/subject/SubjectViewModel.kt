@@ -1,6 +1,7 @@
 package com.example.learningapp.presentation.subject
 
 import android.util.Log
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.learningapp.di.SessionManager
@@ -23,7 +24,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import com.example.learningapp.presentation.authorization.Result
-import kotlinx.coroutines.Job
+
 
 
 @OptIn(FlowPreview::class)
@@ -36,50 +37,44 @@ class SubjectViewModel @Inject constructor(
     private val getSearchHistoryUseCase: GetSearchHistoryUseCase,
     private val addSearchTermUseCase: AddSearchTermUseCase,
     private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase,
-    private val sessionManager: SessionManager // Инжектируем SessionManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SubjectState())
     val state: StateFlow<SubjectState> = _state.asStateFlow()
 
-    private var _fullSubjectList = emptyList<Subject>() // Локальный кэш полного списка
-    private var searchJob: Job? = null // Для отмены предыдущего поиска/фильтрации
-
-    // Для обработки ввода в реальном времени в TextField поиска
+    private var _fullSubjectList = emptyList<Subject>()
     private val _searchQueryFlow = MutableStateFlow("")
 
     init {
-        // Загрузка истории поиска при инициализации (не зависит от userId)
+        // ... (код инициализации для searchHistory и _searchQueryFlow) ...
         viewModelScope.launch {
             getSearchHistoryUseCase().collect { history ->
                 _state.update { it.copy(searchHistory = history) }
                 updateShowHistoryState()
             }
         }
-
-        // Обработка изменений searchQuery (не зависит от userId напрямую для debounce)
         viewModelScope.launch {
             _searchQueryFlow
                 .debounce(300)
                 .collectLatest { query ->
-                    filterSubjectsAndUpdateState(query) // Фильтрует _fullSubjectList
+                    filterSubjectsAndUpdateState(query)
                 }
         }
-        // Для немедленного обновления searchQuery в UI при вводе
         viewModelScope.launch {
             _searchQueryFlow.collect { query ->
                 _state.update { it.copy(searchQuery = query) }
             }
         }
 
-        // Подписываемся на изменения userId. Загружаем данные только когда userId известен.
         viewModelScope.launch {
-            sessionManager.currentUserIdFlow.collectLatest { userId ->
-                if (userId != null) {
-                    Log.d("SubjectViewModel", "UserId available: $userId. Loading initial subjects.")
-                    processIntent(SubjectIntent.LoadInitialData) // Теперь LoadInitialData будет вызван с userId
+            sessionManager.currentUserIdFlow.collectLatest { userIdValue ->
+                Log.d("SubjectViewModel", "SessionManager emitted userId: $userIdValue")
+                if (userIdValue != null) {
+                    Log.d("SubjectViewModel", "UserId available: $userIdValue. Triggering LoadInitialData.")
+                    processIntent(SubjectIntent.LoadInitialData)
                 } else {
-                    Log.d("SubjectViewModel", "UserId is null. Clearing subjects.")
+                    Log.d("SubjectViewModel", "UserId became null. Clearing subjects.")
                     _fullSubjectList = emptyList()
                     _state.update { it.copy(subjects = emptyList(), isLoading = false, error = null) }
                 }
@@ -87,14 +82,20 @@ class SubjectViewModel @Inject constructor(
         }
     }
 
-
     fun processIntent(intent: SubjectIntent) {
         Log.d("SubjectViewModel", "Processing Intent: $intent")
         when (intent) {
-            is SubjectIntent.LoadInitialData -> loadInitialSubjects()
+            is SubjectIntent.LoadInitialData -> { // Интент для загрузки/повторной загрузки
+                if (sessionManager.isLoggedIn()) {
+                    loadInitialSubjects()
+                } else {
+                    Log.w("SubjectViewModel", "LoadInitialData: User not logged in.")
+                    _state.update { it.copy(isLoading = false, error = "Пользователь не авторизован", subjects = emptyList())}
+                }
+            }
+            // ... (остальные обработчики интентов) ...
             is SubjectIntent.SearchQueryChanged -> {
-                _state.update { it.copy(searchQuery = intent.query) }
-                _searchQueryFlow.value = intent.query // Триггерим debounce-поток
+                _searchQueryFlow.value = intent.query
                 updateShowHistoryState()
             }
             is SubjectIntent.SearchBarFocusChanged -> handleFocusChange(intent.isFocused)
@@ -109,38 +110,43 @@ class SubjectViewModel @Inject constructor(
 
     private fun loadInitialSubjects() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            getAllSubjectsUseCase() // Возвращает Flow<List<Subject>>
-                .catch { e -> // Обработка ошибок на уровне сбора Flow
-                    Log.e("SubjectViewModel", "Error loading initial subjects", e)
+            _state.update { it.copy(isLoading = true, error = null) } // <-- Сброс ошибки, isLoading = true
+            getAllSubjectsUseCase() // Это Flow<List<Subject>>
+                .catch { e -> // <-- Ловим ошибку из Flow (например, от репозитория)
+                    Log.e("SubjectViewModel", "Error in getAllSubjectsUseCase Flow", e)
                     _state.update {
                         it.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to load subjects",
-                            subjects = emptyList() // Очищаем список при ошибке
+                            isLoading = false, // <-- Загрузка завершена (неудачно)
+                            error = e.message ?: "Не удалось загрузить предметы. Проверьте подключение.", // <-- Устанавливаем ошибку
+                            subjects = emptyList() // Список пуст
                         )
                     }
                     _fullSubjectList = emptyList()
                 }
-                .collectLatest { subjectsFromServer ->
-                    Log.d("SubjectViewModel", "Loaded ${subjectsFromServer.size} subjects from server.")
+                .collectLatest { subjectsFromServer -> // <-- Сюда попадаем, если НЕ БЫЛО ошибки в Flow
+                    Log.d("SubjectViewModel", "Collected ${subjectsFromServer.size} subjects from server.")
                     _fullSubjectList = subjectsFromServer
-                    // Фильтруем по текущему searchQuery (если он был введен до завершения загрузки)
                     filterSubjectsAndUpdateState(_state.value.searchQuery)
-                    _state.update { it.copy(isLoading = false) } // Загрузка завершена
+                    _state.update { currentState ->
+                        currentState.copy(
+                            isLoading = false, // <-- Загрузка завершена (успешно)
+                            error = null // <-- Ошибки нет
+                        )
+                    }
                 }
         }
     }
 
+    // ... (filterSubjectsAndUpdateState и другие приватные методы без изменений по теме ошибки)
     private fun filterSubjectsAndUpdateState(query: String) {
         val filtered = if (query.isBlank()) {
             _fullSubjectList
         } else {
             _fullSubjectList.filter { it.name.contains(query, ignoreCase = true) }
         }
-        _state.update { it.copy(subjects = filtered) }
+        Log.d("SubjectViewModel", "Filtering: query='$query', fullListSize=${_fullSubjectList.size}, filteredSize=${filtered.size}")
+        _state.update { it.copy(subjects = filtered) } // isLoading здесь не меняем, им управляют операции загрузки/CRUD
     }
-
 
     private fun handleFocusChange(isFocused: Boolean) {
         _state.update { it.copy(isSearchBarFocused = isFocused) }
@@ -150,8 +156,9 @@ class SubjectViewModel @Inject constructor(
     private fun updateShowHistoryState() {
         _state.update { currentState ->
             val shouldShow = currentState.isSearchBarFocused &&
-                    currentState.searchQuery.isBlank() && // Показываем историю только если поле поиска пустое
+                    currentState.searchQuery.isBlank() &&
                     currentState.searchHistory.isNotEmpty()
+            Log.d("SubjectViewModel", "updateShowHistoryState: isFocused=${currentState.isSearchBarFocused}, queryBlank=${currentState.searchQuery.isBlank()}, historyNotEmpty=${currentState.searchHistory.isNotEmpty()}, resultShouldShow=$shouldShow")
             currentState.copy(showHistory = shouldShow)
         }
     }
@@ -159,59 +166,44 @@ class SubjectViewModel @Inject constructor(
     private fun submitSearchTerm(term: String) {
         val trimmedTerm = term.trim()
         if (trimmedTerm.isNotBlank()) {
-            viewModelScope.launch {
-                addSearchTermUseCase(trimmedTerm) // UseCase для добавления в историю
-            }
+            viewModelScope.launch { addSearchTermUseCase(trimmedTerm) }
         }
-        // Скрываем историю и убираем фокус после сабмита
         _state.update { it.copy(showHistory = false, isSearchBarFocused = false) }
-        // Фильтрация произойдет через _searchQueryFlow, если query изменился
     }
 
     private fun handleHistoryItemClick(term: String) {
-        // Обновляем searchQuery в State и в _searchQueryFlow, чтобы запустить фильтрацию
         _state.update { it.copy(searchQuery = term, isSearchBarFocused = false, showHistory = false) }
         _searchQueryFlow.value = term
-        viewModelScope.launch {
-            addSearchTermUseCase(term) // Добавляем/обновляем в истории
-        }
+        viewModelScope.launch { addSearchTermUseCase(term) }
     }
 
     private fun clearUserSearchHistory() {
-        viewModelScope.launch {
-            clearSearchHistoryUseCase()
-            // История обновится через Flow от getSearchHistoryUseCase,
-            // и updateShowHistoryState скроет ее, если она стала пустой.
-        }
+        viewModelScope.launch { clearSearchHistoryUseCase() }
     }
 
     private fun addNewSubject(name: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, error = null) }
             when (val result = addSubjectUseCase(name)) {
                 is Result.Success -> {
-                    // После успешного добавления нужно перезагрузить список предметов
-                    // или, если сервер возвращает созданный объект, можно добавить его локально (сложнее с MVI)
-                    // Проще вс его - инициировать перезагрузку.
-                    Log.d("SubjectViewModel", "Subject added with ID: ${result.data}. Reloading subjects.")
-                    loadInitialSubjects() // Перезагружаем весь список
+                    Log.d("SubjectViewModel", "Subject added. Reloading subjects.")
+                    loadInitialSubjects()
                 }
                 is Result.Error -> {
                     _state.update { it.copy(isLoading = false, error = result.message) }
                 }
-                else -> { /* No-op для Result.Loading, если есть */ }
+                is Result.Loading -> { /* Обработка состояния загрузки, если UseCase его возвращает */ }
             }
         }
     }
 
     private fun updateUserSubject(subject: Subject) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            // Предположим, updateSubjectUseCase возвращает Result<Unit> или кидает Exception
+            _state.update { it.copy(isLoading = true, error = null) }
             try {
-                updateSubjectUseCase(subject) // suspend fun
-                Log.d("SubjectViewModel", "Subject updated: ${subject.id}. Reloading subjects.")
-                loadInitialSubjects() // Перезагружаем
+                updateSubjectUseCase(subject)
+                Log.d("SubjectViewModel", "Subject updated. Reloading subjects.")
+                loadInitialSubjects()
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to update subject") }
             }
@@ -220,12 +212,11 @@ class SubjectViewModel @Inject constructor(
 
     private fun deleteUserSubject(id: Int) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            // Предположим, deleteSubjectUseCase возвращает Result<Unit> или кидает Exception
+            _state.update { it.copy(isLoading = true, error = null) }
             try {
-                deleteSubjectUseCase(id) // suspend fun
-                Log.d("SubjectViewModel", "Subject deleted: $id. Reloading subjects.")
-                loadInitialSubjects() // Перезагружаем
+                deleteSubjectUseCase(id)
+                Log.d("SubjectViewModel", "Subject deleted. Reloading subjects.")
+                loadInitialSubjects()
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message ?: "Failed to delete subject") }
             }
