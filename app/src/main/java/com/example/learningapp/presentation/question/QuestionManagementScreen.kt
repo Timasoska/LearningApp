@@ -1,6 +1,7 @@
 package com.example.learningapp.presentation.question
 
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -110,7 +111,9 @@ fun QuestionManagementScreen(
                                 )
                             }
                             Row {
-                                IconButton(onClick = { onEditQuestionRequested(question) }) {
+                                IconButton(onClick = {
+                                    onEditQuestionRequested(question) }) {
+                                    Log.d("QMS", "Edit clicked for question: ID=${question.id}, Title='${question.title}'") // <<< ЛОГ ЗДЕСЬ
                                     Icon(Icons.Default.Edit, contentDescription = "Редактировать")
                                 }
                                 IconButton(onClick = { questionToDelete = question }) {
