@@ -1,6 +1,8 @@
 package com.example.learningapp.presentation
 
 import android.annotation.SuppressLint
+import android.util.Log
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -113,13 +115,22 @@ fun AppNavigation(
             val questionId = backStackEntry.arguments?.getInt("questionId") ?: 0
             LaunchedEffect(questionId) {
                 questionViewModel.processIntent(QuestionIntent.LoadQuestionById(questionId))
+                Log.d("AppNavigation", "EditQuestionScreen: LaunchedEffect for questionId: $questionId")
             }
-            val currentQuestion = questionViewModel.state.collectAsState().value.currentQuestion
+            val questionState by questionViewModel.state.collectAsState()
+            val currentQuestion = questionState.currentQuestion // currentQuestion теперь типа Question?
+            Log.d("AppNavigation", "EditQuestionScreen: currentQuestion value: $currentQuestion")
             if (currentQuestion != null) {
                 EditQuestionScreen(
                     question = currentQuestion,
                     viewModel = questionViewModel,
                     onQuestionUpdated = { navController.popBackStack() }
+                )
+            }else {
+                // <<< ЧТО ПРОИСХОДИТ ЗДЕСЬ? Показывается ли что-то? Может, это и есть твой "белый экран"?
+                Log.d(
+                    "AppNavigation",
+                    "EditQuestionScreen: currentQuestion is null. Displaying loading or empty state."
                 )
             }
         }

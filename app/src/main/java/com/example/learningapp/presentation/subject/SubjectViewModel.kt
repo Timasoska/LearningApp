@@ -3,6 +3,7 @@ package com.example.learningapp.presentation.subject
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.learningapp.di.SessionManager
 import com.example.learningapp.domain.model.Subject
 import com.example.learningapp.domain.usecase.search.AddSearchTermUseCase
 import com.example.learningapp.domain.usecase.search.ClearSearchHistoryUseCase
@@ -34,7 +35,8 @@ class SubjectViewModel @Inject constructor(
     private val deleteSubjectUseCase: DeleteSubjectUseCase,
     private val getSearchHistoryUseCase: GetSearchHistoryUseCase,
     private val addSearchTermUseCase: AddSearchTermUseCase,
-    private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase
+    private val clearSearchHistoryUseCase: ClearSearchHistoryUseCase,
+    private val sessionManager: SessionManager // Инжектируем SessionManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SubjectState())
@@ -47,25 +49,44 @@ class SubjectViewModel @Inject constructor(
     private val _searchQueryFlow = MutableStateFlow("")
 
     init {
-        // Загрузка истории поиска при инициализации
+        // Загрузка истории поиска при инициализации (не зависит от userId)
         viewModelScope.launch {
             getSearchHistoryUseCase().collect { history ->
                 _state.update { it.copy(searchHistory = history) }
-                updateShowHistoryState() // Обновляем видимость истории
+                updateShowHistoryState()
             }
         }
 
-        // Обработка изменений searchQuery с debounce для фильтрации
+        // Обработка изменений searchQuery (не зависит от userId напрямую для debounce)
         viewModelScope.launch {
             _searchQueryFlow
-                .debounce(300) // Задержка для реакции на ввод
+                .debounce(300)
                 .collectLatest { query ->
-                    filterSubjectsAndUpdateState(query)
+                    filterSubjectsAndUpdateState(query) // Фильтрует _fullSubjectList
                 }
         }
-        // Первоначальная загрузка данных
-        processIntent(SubjectIntent.LoadInitialData)
+        // Для немедленного обновления searchQuery в UI при вводе
+        viewModelScope.launch {
+            _searchQueryFlow.collect { query ->
+                _state.update { it.copy(searchQuery = query) }
+            }
+        }
+
+        // Подписываемся на изменения userId. Загружаем данные только когда userId известен.
+        viewModelScope.launch {
+            sessionManager.currentUserIdFlow.collectLatest { userId ->
+                if (userId != null) {
+                    Log.d("SubjectViewModel", "UserId available: $userId. Loading initial subjects.")
+                    processIntent(SubjectIntent.LoadInitialData) // Теперь LoadInitialData будет вызван с userId
+                } else {
+                    Log.d("SubjectViewModel", "UserId is null. Clearing subjects.")
+                    _fullSubjectList = emptyList()
+                    _state.update { it.copy(subjects = emptyList(), isLoading = false, error = null) }
+                }
+            }
+        }
     }
+
 
     fun processIntent(intent: SubjectIntent) {
         Log.d("SubjectViewModel", "Processing Intent: $intent")
